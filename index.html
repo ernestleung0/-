@@ -8,9 +8,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="我的小帳目">
 
-  <!-- 引入 Google 官方登入 SDK -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-
   <style>
     * {
       box-sizing: border-box;
@@ -75,6 +72,8 @@
     .top-actions {
       display: flex;
       gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .icon-btn, .sub-btn, .filter-chip, .pen-btn, .modal-btn, .cal-day-btn {
@@ -97,6 +96,18 @@
       transform: translateY(3px);
       box-shadow: 0 1px 0 #b0b5b9;
       filter: brightness(0.92);
+    }
+    .icon-btn.ai-btn {
+      background: #495057;
+      color: #ffffff;
+      border-color: #343a40;
+      box-shadow: 0 4px 0 #212529, 0 5px 8px rgba(0,0,0,0.25);
+    }
+    .icon-btn.ai-active {
+      background: #2b8a3e;
+      color: #ffffff;
+      border-color: #1e632b;
+      box-shadow: 0 4px 0 #13421d, 0 5px 8px rgba(0,0,0,0.25);
     }
 
     .summary-card {
@@ -222,7 +233,6 @@
       padding-bottom: 95px;
     }
 
-    /* 雙向滑動包裹層 */
     .record-wrapper {
       position: relative;
       border-radius: 14px;
@@ -230,7 +240,6 @@
       background: #495057;
     }
 
-    /* 底層左側：修改按鈕 (藍色) */
     .edit-swipe-btn {
       position: absolute;
       left: 0;
@@ -248,7 +257,6 @@
       z-index: 1;
     }
 
-    /* 底層右側：刪除按鈕 (紅色) */
     .delete-swipe-btn {
       position: absolute;
       right: 0;
@@ -542,6 +550,7 @@
 <body>
 
   <canvas id="bgCanvas"></canvas>
+  <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="handleFileImport(event)">
 
   <div id="appContainer">
     <div class="top-bar">
@@ -550,8 +559,10 @@
         <div class="date-display" id="dateDisplay">載入中...</div>
       </div>
       <div class="top-actions">
-        <button class="icon-btn" onclick="openGoogleSyncModal()">👤 雲端備份</button>
-        <button class="icon-btn" onclick="exportToExcel()">📊 匯出Excel</button>
+        <!-- 核心新增：DeepSeek API 按鈕 -->
+        <button class="icon-btn ai-btn" id="deepseekStatusBtn" onclick="openApiKeyModal()">🤖 DeepSeek</button>
+        <button class="icon-btn" onclick="openBackupModal()">💾 備份</button>
+        <button class="icon-btn" onclick="exportToExcel()">📊 Excel</button>
         <button class="icon-btn" onclick="switchTheme()">🎨 主題</button>
       </div>
     </div>
@@ -603,7 +614,34 @@
     </div>
   </div>
 
-  <!-- 手動新增彈窗 -->
+  <!-- DeepSeek API Key 貼上與設定彈窗 -->
+  <div class="modal-overlay" id="apiKeyModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>連接 DeepSeek 大模型</h3>
+        <span style="font-size: 22px; cursor: pointer; font-weight: bold;" onclick="closeApiKeyModal()">✕</span>
+      </div>
+      <div style="font-size: 13px; color: #495057; line-height: 1.5; margin-bottom: 14px;">
+        接入 <b>DeepSeek-V3 (deepseek-chat)</b> 超平價大腦：<br>
+        可自動精確識別「<b>港鐵個六</b>」、「<b>搭黨鐵</b>」、「<b>去薩莉亞食晏</b>」等廣東話口語，自動剔除廢字並歸類為正確交通/餐飲項目。
+      </div>
+
+      <div class="input-group">
+        <label>DeepSeek API Key (sk-...)</label>
+        <input type="text" id="apiKeyValueInput" placeholder="在此長按貼上 sk-...">
+      </div>
+
+      <div id="apiTestStatus" style="font-size: 13px; font-weight: 800; margin-bottom: 12px; display: none;"></div>
+
+      <div class="modal-actions" style="flex-direction: column; gap: 8px;">
+        <button class="modal-btn btn-save" onclick="testAndSaveApiKey()">💾 儲存並測試連線</button>
+        <button class="modal-btn btn-cancel" onclick="clearApiKey()" style="color: #e03131;">清除 Key (改回離線規則)</button>
+        <button class="modal-btn btn-cancel" onclick="closeApiKeyModal()">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 手動新增記錄彈窗 -->
   <div class="modal-overlay" id="manualModal">
     <div class="modal-card">
       <div class="modal-header">
@@ -642,7 +680,7 @@
     </div>
   </div>
 
-  <!-- 項目編輯彈窗（右撥喚起） -->
+  <!-- 項目修改彈窗 -->
   <div class="modal-overlay" id="editModal">
     <div class="modal-card">
       <div class="modal-header">
@@ -678,33 +716,26 @@
     </div>
   </div>
 
-  <!-- Google 帳號雲端備份彈窗 -->
-  <div class="modal-overlay" id="googleModal">
+  <!-- 備份管理彈窗 -->
+  <div class="modal-overlay" id="backupModal">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>Google 帳號雲端同步</h3>
-        <span style="font-size: 22px; cursor: pointer; font-weight: bold;" onclick="closeGoogleSyncModal()">✕</span>
+        <h3>記帳數據防丟備份</h3>
+        <span style="font-size: 22px; cursor: pointer; font-weight: bold;" onclick="closeBackupModal()">✕</span>
       </div>
       <div style="font-size: 13px; color: #495057; line-height: 1.5; margin-bottom: 14px;">
-        登入 Google 帳號可將記錄備份至雲端。日後更新網頁或換手機時，隨時點擊同步即可復原所有記帳數據。
+        本系統已全面啟用 <b>IndexedDB 離線持久資料庫</b>，更新網頁不會清空記錄。<br><br>
+        可隨時將數據下載為備份檔，存於 iPhone「檔案」或 iCloud。
       </div>
 
-      <div id="googleUserSection" style="margin-bottom: 14px; text-align: center; display: none;">
-        <div style="font-weight: 800; font-size: 15px; color: #2b8a3e;" id="googleUserEmail">已登入</div>
-        <div style="font-size: 11px; color: #868e96; margin-top: 4px;" id="lastSyncTime">上次備份：從未</div>
+      <div style="background: #f8f9fa; padding: 12px; border-radius: 12px; margin-bottom: 14px; text-align: center;">
+        <div style="font-size: 13px; font-weight: 800; color: #000;" id="backupCountDisplay">目前本機記帳總數：0 筆</div>
       </div>
-
-      <div id="g_id_onload"
-           data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
-           data-callback="handleGoogleCredentialResponse"
-           data-auto_prompt="false">
-      </div>
-      <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left" style="display: flex; justify-content: center; margin-bottom: 14px;"></div>
 
       <div class="modal-actions" style="flex-direction: column;">
-        <button class="modal-btn btn-save" onclick="syncToCloud()" id="btnSyncCloud">☁️ 立即備份至雲端</button>
-        <button class="modal-btn btn-cancel" onclick="restoreFromCloud()" id="btnRestoreCloud">🔄 從雲端還原記錄</button>
-        <button class="modal-btn btn-cancel" onclick="closeGoogleSyncModal()">完成</button>
+        <button class="modal-btn btn-save" onclick="downloadBackupFile()" style="background: #2b8a3e; box-shadow: 0 3px 0 #1b6329;">📥 下載專屬備份檔 (.json)</button>
+        <button class="modal-btn btn-save" onclick="triggerFileInput()" style="background: #1971c2; box-shadow: 0 3px 0 #12518c;">📤 匯入備份檔還原</button>
+        <button class="modal-btn btn-cancel" onclick="closeBackupModal()">關閉</button>
       </div>
     </div>
   </div>
@@ -778,47 +809,204 @@
     ];
 
     let currentThemeIdx = 0;
-
-    // MARK: - 本地與安全備份儲存 (Double-Storage Engine)
     let records = [];
-    try {
-      // 雙軌讀取防丟失
-      const primary = localStorage.getItem('my_ledger_records');
-      const backup = localStorage.getItem('my_ledger_records_backup');
-      const dataStr = primary || backup;
-      if (dataStr) records = JSON.parse(dataStr);
-    } catch(e) { records = []; }
+    let deepseekApiKey = localStorage.getItem('deepseek_user_api_key') || '';
 
-    if (records.length === 0) {
-      records = [
-        { id: 1, title: "薩莉亞意式餐廳", amount: 60, category: "餐飲美食", isIncome: false, date: new Date().toISOString() },
-        { id: 2, title: "港鐵車費", amount: 15.2, category: "交通出行", isIncome: false, date: new Date().toISOString() }
-      ];
-      saveData();
+    // MARK: - IndexedDB 持久儲存引擎（防止網頁更新被清空）
+    let db = null;
+    function initIndexedDB() {
+      const request = indexedDB.open("MyLedgerDB", 1);
+      request.onupgradeneeded = (e) => {
+        const d = e.target.result;
+        if (!d.objectStoreNames.contains("records")) {
+          d.createObjectStore("records", { keyPath: "id" });
+        }
+      };
+      request.onsuccess = (e) => {
+        db = e.target.result;
+        loadFromIndexedDB();
+      };
+      request.onerror = () => {
+        fallbackLocalStorage();
+      };
     }
 
-    let currentDimension = 'day';
-    let selectedDate = new Date();
-    let calBrowsingDate = new Date();
-    let currentCategoryFilter = null;
-    let currentUserEmail = localStorage.getItem('google_user_email') || '';
+    function loadFromIndexedDB() {
+      const tx = db.transaction("records", "readonly");
+      const store = tx.objectStore("records");
+      const req = store.getAll();
+      req.onsuccess = () => {
+        if (req.result && req.result.length > 0) {
+          records = req.result.sort((a,b) => new Date(b.date) - new Date(a.date));
+        } else {
+          fallbackLocalStorage();
+        }
+        render();
+      };
+    }
+
+    function fallbackLocalStorage() {
+      try {
+        const stored = localStorage.getItem('my_ledger_records') || localStorage.getItem('my_ledger_records_backup');
+        if (stored) records = JSON.parse(stored);
+      } catch(e) { records = []; }
+
+      if (records.length === 0) {
+        records = [
+          { id: 1, title: "薩莉亞意式餐廳", amount: 60, category: "餐飲美食", isIncome: false, date: new Date().toISOString() },
+          { id: 2, title: "港鐵車費", amount: 15.2, category: "交通出行", isIncome: false, date: new Date().toISOString() }
+        ];
+      }
+      saveData();
+      render();
+    }
 
     function saveData() {
       try {
         const json = JSON.stringify(records);
-        // 主儲存庫
         localStorage.setItem('my_ledger_records', json);
-        // 鏡像備份庫（即使主庫被刷掉，備用庫亦可自癒）
         localStorage.setItem('my_ledger_records_backup', json);
-        if (currentUserEmail) {
-          localStorage.setItem('ledger_cloud_' + currentUserEmail, json);
-        }
       } catch(e) {}
+
+      if (db) {
+        const tx = db.transaction("records", "readwrite");
+        const store = tx.objectStore("records");
+        store.clear();
+        records.forEach(r => store.put(r));
+      }
     }
 
+    // MARK: - DeepSeek API Key 彈窗管理
+    function updateApiKeyButtonUI() {
+      const btn = document.getElementById('deepseekStatusBtn');
+      if (deepseekApiKey) {
+        btn.innerText = "🤖 DeepSeek 已連接";
+        btn.className = "icon-btn ai-btn ai-active";
+      } else {
+        btn.innerText = "🤖 貼上 API Key";
+        btn.className = "icon-btn ai-btn";
+      }
+    }
+
+    function openApiKeyModal() {
+      document.getElementById('apiKeyValueInput').value = deepseekApiKey;
+      document.getElementById('apiTestStatus').style.display = 'none';
+      document.getElementById('apiKeyModal').style.display = 'flex';
+    }
+
+    function closeApiKeyModal() {
+      document.getElementById('apiKeyModal').style.display = 'none';
+    }
+
+    async function testAndSaveApiKey() {
+      const inputKey = document.getElementById('apiKeyValueInput').value.trim();
+      if (!inputKey) {
+        alert("請先貼上有效的 DeepSeek API Key！");
+        return;
+      }
+
+      const statusBox = document.getElementById('apiTestStatus');
+      statusBox.style.display = 'block';
+      statusBox.style.color = '#1971c2';
+      statusBox.innerText = '連線測試中...';
+
+      try {
+        const res = await fetch("https://api.deepseek.com/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${inputKey}`
+          },
+          body: JSON.stringify({
+            model: "deepseek-chat",
+            messages: [{ role: "user", content: "測試" }],
+            max_tokens: 5
+          })
+        });
+
+        if (res.ok) {
+          deepseekApiKey = inputKey;
+          localStorage.setItem('deepseek_user_api_key', deepseekApiKey);
+          statusBox.style.color = '#2b8a3e';
+          statusBox.innerText = '✅ 連線成功！DeepSeek 已就緒。每次記帳將全自動分析。';
+          updateApiKeyButtonUI();
+          setTimeout(closeApiKeyModal, 1500);
+        } else {
+          statusBox.style.color = '#e03131';
+          statusBox.innerText = '❌ 連線失敗：API Key 無效或額度不足 (HTTP ' + res.status + ')';
+        }
+      } catch (err) {
+        statusBox.style.color = '#e03131';
+        statusBox.innerText = '❌ 網路請求錯誤，請檢查網路連接。';
+      }
+    }
+
+    function clearApiKey() {
+      deepseekApiKey = '';
+      localStorage.removeItem('deepseek_user_api_key');
+      document.getElementById('apiKeyValueInput').value = '';
+      updateApiKeyButtonUI();
+      alert("已清除 API Key，系統將回退至離線規則模式。");
+      closeApiKeyModal();
+    }
+
+    // MARK: - 核心大腦：DeepSeek 廣東話精準分析引擎
+    async function analyzeWithDeepSeek(rawVoiceText) {
+      if (!deepseekApiKey) {
+        return parseMultiItemsLocal(rawVoiceText);
+      }
+
+      const systemPrompt = `你是一個精通香港生活與廣東話口語的記帳助手。
+請分析使用者的語音輸入，提取出所有的記帳項目。
+要求：
+1. 嚴格過濾廢字：「我」、「坐」、「搭」、「去咗」、「食咗」、「買咗」、「使咗」、「花費」等口語贅字一律剔除。
+2. 主題名稱直接提取核心：例如「我坐港鐵」-> 主題為「港鐵」；「去咗薩莉亞食咗$60」-> 主題為「薩莉亞意式餐廳」；「買衫」-> 主題為「買衫」。
+3. 支援廣東話數字：特別注意「個六」代表 1.6 元（或 15 個六 = 15.6 元）；「十蚊」= 10 元；「五百蚊」= 500 元。
+4. 正確歸納分類，可選分類只有：餐飲美食、交通出行、購物消費、休閒娛樂、居家生活、醫療健康、薪資收入、其他雜項。
+   - 所有「港鐵、地鐵、巴士、的士、車費、過海、打車、小巴」絕對必須歸入「交通出行」！
+5. 必須僅輸出標準 JSON 陣列，絕對不要包含任何 markdown 標籤或解釋，格式：
+[{"title":"港鐵","amount":10.0,"category":"交通出行","isIncome":false}]`;
+
+      try {
+        const response = await fetch("https://api.deepseek.com/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${deepseekApiKey}`
+          },
+          body: JSON.stringify({
+            model: "deepseek-chat",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: rawVoiceText }
+            ],
+            temperature: 0.1
+          })
+        });
+
+        const data = await response.json();
+        let content = data.choices[0].message.content.trim();
+        content = content.replace(/```json/g, "").replace(/```/g, "").trim();
+        const parsed = JSON.parse(content);
+
+        return parsed.map(item => ({
+          id: Date.now() + Math.random(),
+          title: item.title,
+          amount: parseFloat(item.amount) || 0,
+          category: item.category || "其他雜項",
+          isIncome: Boolean(item.isIncome),
+          date: new Date().toISOString()
+        }));
+      } catch (err) {
+        console.warn("DeepSeek 解析失敗，回退至本地解析", err);
+        return parseMultiItemsLocal(rawVoiceText);
+      }
+    }
+
+    // 本地備用解析（強化交通關鍵詞）
     const CATEGORY_MAP = {
       "餐飲美食": ["飯", "麵", "食", "咖啡", "外賣", "早餐", "午餐", "晚餐", "茶餐廳", "凍飲", "壽司", "薩莉亞", "starbucks", "m記", "麥當勞", "吉野家", "譚仔", "南記", "酒樓", "cafe", "food", "drink", "晏", "宴"],
-      "交通出行": ["搭車", "搭", "行路", "行", "走路", "步行", "車", "車費", "地鐵", "巴士", "的士", "打車", "uber", "八達通", "mtr", "bus", "taxi", "油費", "泊車", "小巴", "渡輪", "電車", "輕鐵", "過海", "walk", "train"],
+      "交通出行": ["港鐵", "地鐵", "搭車", "搭", "行路", "行", "走路", "步行", "車", "車費", "巴士", "的士", "打車", "uber", "八達通", "mtr", "bus", "taxi", "油費", "泊車", "小巴", "渡輪", "電車", "輕鐵", "過海", "walk", "train", "坐港鐵", "坐車", "坐巴士"],
       "購物消費": ["買", "淘寶", "超市", "百佳", "惠康", "衫", "褲", "鞋", "購物", "shopping", "clothes", "書", "萬寧", "屈臣氏", "uniqlo"],
       "休閒娛樂": ["戲院", "電影", "唱k", "演唱會", "旅行", "酒店", "game", "steam", "switch", "ps5", "movie"],
       "居家生活": ["租金", "水費", "電費", "煤氣", "寬頻", "電話費", "rent", "bill"],
@@ -837,42 +1025,19 @@
       "其他雜項": "📦"
     };
 
-    function cleanTitleTopic(text) {
+    function cleanTitleTopicLocal(text) {
       let s = text.replace(/(\$?\s*[0-9]+(\.[0-9]{1,2})?\s*(蚊|元|塊|dollars|hkd|usd)?\$?)/gi, "");
-      const stopWords = [
-        "我今日", "今日", "琴日", "尋日", "去咗", "去左", "係", "喺", "到", "食咗", "食左", "買咗", "買左",
-        "用咗", "用左", "使咗", "使左", "花咗", "花左", "花了", "花費", "用", "食", "買", "搭",
-        "仲有", "同埋", "跟住", "加埋", "\\$"
-      ];
-      for (let w of stopWords) {
-        s = s.replace(new RegExp(w, 'g'), "");
-      }
+      const stopWords = ["我今日", "今日", "琴日", "尋日", "去咗", "去左", "我坐", "我搭", "我", "坐", "搭", "食咗", "食左", "買咗", "買左", "用咗", "用左", "用", "食", "買", "\\$"];
+      for (let w of stopWords) s = s.replace(new RegExp(w, 'g'), "");
       s = s.trim();
-
       if (s === "薩莉亞") s = "薩莉亞意式餐廳";
-      if (s === "麥當勞" || s.toLowerCase() === "m記") s = "麥當勞";
-      if (s === "星巴克") s = "星巴克咖啡";
+      if (s === "港鐵" || s === "地鐵") s = "港鐵車費";
       return s;
     }
 
     function parseMultiItemsLocal(text) {
       let normalized = text.replace(/(同埋|加埋|跟住|然後|仲有|，|、|。| and | then |\n|;)/g, ",");
       let segments = normalized.split(",").map(s => s.trim()).filter(s => s.length > 0);
-
-      if (segments.length === 1) {
-        const matches = [...text.matchAll(/([0-9]+(\.[0-9]{1,2})?\s*(蚊|元|塊|dollars|hkd|usd)?)/gi)];
-        if (matches.length > 1) {
-          let subs = [];
-          let lastIdx = 0;
-          for (let m of matches) {
-            let end = m.index + m[0].length;
-            subs.push(text.substring(lastIdx, end));
-            lastIdx = end;
-          }
-          if (lastIdx < text.length) subs[subs.length - 1] += text.substring(lastIdx);
-          segments = subs;
-        }
-      }
 
       let parsedList = [];
       for (let seg of segments) {
@@ -894,7 +1059,7 @@
             }
           }
 
-          let title = cleanTitleTopic(seg);
+          let title = cleanTitleTopicLocal(seg);
           if (!title) title = category;
 
           parsedList.push({
@@ -983,8 +1148,12 @@
         const finalContent = (confirmedTranscript + " " + interimTranscript).trim();
 
         if (finalContent) {
-          const newItems = parseMultiItemsLocal(finalContent);
-          document.getElementById('speechTip').style.display = 'none';
+          const tip = document.getElementById('speechTip');
+          tip.style.display = 'block';
+          tip.innerHTML = '🤖 <b>DeepSeek 正在深入分析語意與分類...</b>';
+
+          const newItems = await analyzeWithDeepSeek(finalContent);
+          tip.style.display = 'none';
 
           if (newItems.length > 0) {
             records.unshift(...newItems);
@@ -1005,7 +1174,12 @@
       }
     }
 
-    // MARK: - 渲染與雙向滑動手勢 (右滑編輯 / 左滑刪除)
+    // MARK: - 介面渲染與雙向手勢控制 (右滑修改 / 左滑刪除)
+    let currentDimension = 'day';
+    let selectedDate = new Date();
+    let calBrowsingDate = new Date();
+    let currentCategoryFilter = null;
+
     function formatDateDisplay() {
       const y = selectedDate.getFullYear();
       const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
@@ -1051,7 +1225,6 @@
       render();
     }
 
-    // 打開編輯視窗
     function openEditModal(record) {
       document.getElementById('editRecordId').value = record.id;
       document.getElementById('editTitle').value = record.title;
@@ -1139,13 +1312,11 @@
         const wrapper = document.createElement('div');
         wrapper.className = 'record-wrapper';
 
-        // 左側：修改按鈕 (右撥後出現)
         const editBtn = document.createElement('div');
         editBtn.className = 'edit-swipe-btn';
         editBtn.innerText = '修改 ✏️';
         editBtn.onclick = () => openEditModal(r);
 
-        // 右側：刪除按鈕 (左撥後出現)
         const deleteBtn = document.createElement('div');
         deleteBtn.className = 'delete-swipe-btn';
         deleteBtn.innerText = '刪除 🗑️';
@@ -1166,10 +1337,9 @@
           </div>
         `;
 
-        // 雙向手勢控制核心邏輯
         let startX = 0;
         let currentX = 0;
-        let swipeMode = 'none'; // 'none' | 'left' (刪除) | 'right' (修改)
+        let swipeMode = 'none';
 
         card.addEventListener('touchstart', (e) => {
           startX = e.touches[0].clientX;
@@ -1184,11 +1354,9 @@
             currentX = deltaX;
             card.style.transform = `translateX(${currentX}px)`;
           } else if (swipeMode === 'left') {
-            // 已滑出刪除，向右拉回復位
             currentX = Math.min(-90 + deltaX, 0);
             card.style.transform = `translateX(${currentX}px)`;
           } else if (swipeMode === 'right') {
-            // 已滑出修改，向左拉回復位
             currentX = Math.max(90 + deltaX, 0);
             card.style.transform = `translateX(${currentX}px)`;
           }
@@ -1198,11 +1366,9 @@
           card.style.transition = 'transform 0.22s cubic-bezier(0.1, 0.9, 0.2, 1)';
           if (swipeMode === 'none') {
             if (currentX < -40) {
-              // 判定為左滑：顯示刪除
               card.style.transform = 'translateX(-90px)';
               swipeMode = 'left';
             } else if (currentX > 40) {
-              // 判定為右滑：顯示修改
               card.style.transform = 'translateX(90px)';
               swipeMode = 'right';
             } else {
@@ -1240,80 +1406,58 @@
       });
     }
 
-    // MARK: - Google 登入與雲端備份
-    function openGoogleSyncModal() {
-      if (currentUserEmail) {
-        document.getElementById('googleUserSection').style.display = 'block';
-        document.getElementById('googleUserEmail').innerText = '帳號：' + currentUserEmail;
-        const lastSync = localStorage.getItem('last_sync_time');
-        if (lastSync) document.getElementById('lastSyncTime').innerText = '上次備份：' + lastSync;
-      }
-      document.getElementById('googleModal').style.display = 'flex';
+    // MARK: - 備份管理
+    function openBackupModal() {
+      document.getElementById('backupCountDisplay').innerText = `目前本機記帳總數：${records.length} 筆`;
+      document.getElementById('backupModal').style.display = 'flex';
+    }
+    function closeBackupModal() {
+      document.getElementById('backupModal').style.display = 'none';
     }
 
-    function closeGoogleSyncModal() {
-      document.getElementById('googleModal').style.display = 'none';
+    function downloadBackupFile() {
+      const dataStr = JSON.stringify(records, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const d = new Date();
+      const dateStr = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}`;
+      link.href = url;
+      link.download = `我的小帳目_完整備份_${dateStr}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
 
-    // 接收 Google 憑證解析 JWT
-    function handleGoogleCredentialResponse(response) {
-      try {
-        const base64Url = response.credential.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
-        const user = JSON.parse(jsonPayload);
-
-        currentUserEmail = user.email;
-        localStorage.setItem('google_user_email', currentUserEmail);
-        document.getElementById('googleUserSection').style.display = 'block';
-        document.getElementById('googleUserEmail').innerText = '帳號：' + currentUserEmail;
-
-        // 登入後自動執行一次雲端備份保護
-        syncToCloud();
-      } catch (e) {
-        alert("Google 登入解析失敗");
-      }
+    function triggerFileInput() {
+      document.getElementById('importFileInput').click();
     }
 
-    function syncToCloud() {
-      if (!currentUserEmail) {
-        // 未設定 Client ID 時啟用通用雲端備份
-        currentUserEmail = prompt("請輸入你的 Google 帳號 (Email) 作為同步金鑰：", currentUserEmail || "");
-        if (!currentUserEmail) return;
-        localStorage.setItem('google_user_email', currentUserEmail);
-      }
-      const dataStr = JSON.stringify(records);
-      localStorage.setItem('ledger_cloud_' + currentUserEmail, dataStr);
-      const now = new Date().toLocaleString();
-      localStorage.setItem('last_sync_time', now);
+    function handleFileImport(event) {
+      const file = event.target.files[0];
+      if (!file) return;
 
-      document.getElementById('lastSyncTime').innerText = '上次備份：' + now;
-      alert("✅ 已成功備份 " + records.length + " 筆記錄至 Google 雲端帳號！\n即使更新網頁亦不會遺失。");
-    }
-
-    function restoreFromCloud() {
-      if (!currentUserEmail) {
-        currentUserEmail = prompt("請輸入要還原記錄的 Google 帳號 (Email)：", "");
-        if (!currentUserEmail) return;
-      }
-      const cloudData = localStorage.getItem('ledger_cloud_' + currentUserEmail);
-      if (cloudData) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
         try {
-          const parsed = JSON.parse(cloudData);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            records = parsed;
+          const imported = JSON.parse(e.target.result);
+          if (Array.isArray(imported) && imported.length > 0) {
+            records = imported;
             saveData();
             render();
-            alert("🎉 成功從 Google 雲端還原了 " + records.length + " 筆記帳記錄！");
-            closeGoogleSyncModal();
-            return;
+            alert(`🎉 成功還原了 ${records.length} 筆記帳數據！`);
+            closeBackupModal();
+          } else {
+            alert("⚠️ 備份檔格式不正確。");
           }
-        } catch(e) {}
-      }
-      alert("⚠️ 找不到該帳號的雲端備份記錄。");
+        } catch (err) {
+          alert("讀取備份檔案失敗。");
+        }
+      };
+      reader.readAsText(file);
     }
 
-    // MARK: - 大日曆操作
+    // MARK: - 大日曆
     function openDateModal() {
       calBrowsingDate = new Date(selectedDate.getTime());
       renderCalendarView();
@@ -1387,7 +1531,6 @@
       }
     }
 
-    // MARK: - 手動新增彈窗
     function openManualModal() {
       document.getElementById('manualModal').style.display = 'flex';
       document.getElementById('manualInputText').value = '';
@@ -1397,7 +1540,7 @@
     function closeManualModal() {
       document.getElementById('manualModal').style.display = 'none';
     }
-    function autoParseInput(val) {
+    async function autoParseInput(val) {
       let items = parseMultiItemsLocal(val);
       if (items.length > 0) {
         document.getElementById('manualTitle').value = items[0].title;
@@ -1537,7 +1680,8 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
     applyTheme();
-    render();
+    updateApiKeyButtonUI();
+    initIndexedDB();
     animate();
   </script>
 </body>
