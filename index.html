@@ -31,7 +31,6 @@
       user-select: auto;
     }
 
-    /* 背景粒子 Canvas */
     #bgCanvas {
       position: absolute;
       top: 0;
@@ -42,7 +41,6 @@
       pointer-events: none;
     }
 
-    /* 主容器 */
     #appContainer {
       position: relative;
       z-index: 10;
@@ -53,7 +51,6 @@
       padding: env(safe-area-inset-top, 24px) 16px env(safe-area-inset-bottom, 20px) 16px;
     }
 
-    /* 頂部欄 */
     .top-bar {
       display: flex;
       justify-content: space-between;
@@ -77,7 +74,6 @@
       gap: 8px;
     }
 
-    /* 立體浮凸按鈕特效 (3D Button Effect) */
     .icon-btn, .sub-btn, .filter-chip, .pen-btn, .modal-btn, .cal-day-btn {
       cursor: pointer;
       user-select: none;
@@ -96,11 +92,10 @@
     }
     .icon-btn:active {
       transform: translateY(3px);
-      box-shadow: 0 1px 0 #b0b5b9, 0 2px 4px rgba(0,0,0,0.15);
+      box-shadow: 0 1px 0 #b0b5b9;
       filter: brightness(0.92);
     }
 
-    /* 收支總覽卡片 */
     .summary-card {
       background: rgba(255, 255, 255, 0.94);
       backdrop-filter: blur(16px);
@@ -184,7 +179,6 @@
       filter: brightness(0.92);
     }
 
-    /* 類別標籤列 */
     .filter-scroll {
       display: flex;
       gap: 8px;
@@ -215,7 +209,6 @@
       box-shadow: 0 1px 0 #ced4da;
     }
 
-    /* 記錄流水列表（支援滑動刪除） */
     .record-list {
       flex: 1;
       overflow-y: auto;
@@ -223,23 +216,22 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      padding-bottom: 90px;
+      padding-bottom: 95px;
     }
 
     .record-wrapper {
       position: relative;
       border-radius: 14px;
       overflow: hidden;
-      background: #fa5252;
+      background: #e03131;
     }
 
-    /* 背景紅色刪除按鈕 */
     .delete-swipe-btn {
       position: absolute;
       right: 0;
       top: 0;
       bottom: 0;
-      width: 85px;
+      width: 90px;
       background: #e03131;
       color: #ffffff;
       display: flex;
@@ -251,7 +243,6 @@
       z-index: 1;
     }
 
-    /* 卡片主體（可橫向滑動） */
     .record-card {
       position: relative;
       background: rgba(255, 255, 255, 0.96);
@@ -263,7 +254,7 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       z-index: 2;
       transform: translateX(0);
-      transition: transform 0.2s ease-out;
+      transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1);
       touch-action: pan-y;
     }
     .rec-left {
@@ -302,7 +293,6 @@
       color: #000000;
     }
 
-    /* 底部懸浮按鈕 */
     .bottom-bar {
       position: absolute;
       bottom: env(safe-area-inset-bottom, 20px);
@@ -331,7 +321,7 @@
     }
     .mic-btn:active {
       transform: translateY(4px) scale(0.96);
-      box-shadow: 0 2px 0 #94771b, 0 4px 10px rgba(0,0,0,0.25);
+      box-shadow: 0 2px 0 #94771b;
     }
     .mic-btn.recording {
       background: #fa5252;
@@ -367,7 +357,7 @@
 
     .speech-tip {
       position: absolute;
-      bottom: 96px;
+      bottom: 98px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(255, 255, 255, 0.98);
@@ -382,7 +372,6 @@
       z-index: 25;
     }
 
-    /* 彈窗樣式 */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -468,7 +457,6 @@
       box-shadow: 0 1px 0 #94771b;
     }
 
-    /* 專屬圖形大日曆樣式 */
     .calendar-header {
       display: flex;
       justify-content: space-between;
@@ -529,7 +517,6 @@
   <canvas id="bgCanvas"></canvas>
 
   <div id="appContainer">
-    <!-- 頂部欄 -->
     <div class="top-bar">
       <div>
         <div class="app-title" id="appTitle">我的小帳目</div>
@@ -541,7 +528,6 @@
       </div>
     </div>
 
-    <!-- 收支總覽卡片 -->
     <div class="summary-card">
       <div class="summary-numbers">
         <div>
@@ -567,7 +553,6 @@
       </div>
     </div>
 
-    <!-- 類別滑動標籤 -->
     <div class="filter-scroll" id="categoryChips">
       <button class="filter-chip active" onclick="filterCategory(null)">全部</button>
       <button class="filter-chip" onclick="filterCategory('餐飲美食')">餐飲美食</button>
@@ -580,20 +565,17 @@
       <button class="filter-chip" onclick="filterCategory('其他雜項')">其他雜項</button>
     </div>
 
-    <!-- 記錄流水列表（支援左滑刪除） -->
     <div class="record-list" id="recordList"></div>
 
-    <!-- 語音提示條 -->
-    <div class="speech-tip" id="speechTip">正在聆聽... (如：行路5蚊，搭車70蚊)</div>
+    <div class="speech-tip" id="speechTip">正在聆聽中... (請再按一下麥克風停止)</div>
 
-    <!-- 底部操作按鈕 -->
     <div class="bottom-bar">
       <button class="pen-btn" onclick="openManualModal()">✏️</button>
       <button class="mic-btn" id="micBtn" onclick="toggleSpeech()">🎙️</button>
     </div>
   </div>
 
-  <!-- 手動記帳彈窗 -->
+  <!-- 手動記帳彈窗（含 DeepSeek Key 設置） -->
   <div class="modal-overlay" id="manualModal">
     <div class="modal-card">
       <div class="modal-header">
@@ -601,8 +583,8 @@
         <span style="font-size: 22px; cursor: pointer; font-weight: bold;" onclick="closeManualModal()">✕</span>
       </div>
       <div class="input-group">
-        <label>智能輸入（自動推斷金額與分類）</label>
-        <input type="text" id="manualInputText" placeholder="如：食晏 50 蚊 / 搭車 20" oninput="autoParseInput(this.value)">
+        <label>智能輸入（自動推斷金額與主體）</label>
+        <input type="text" id="manualInputText" placeholder="如：去咗薩莉亞食咗60" oninput="autoParseInput(this.value)">
       </div>
       <div class="input-group">
         <label>項目名稱</label>
@@ -625,6 +607,10 @@
           <option value="其他雜項">其他雜項</option>
         </select>
       </div>
+      <div class="input-group">
+        <label style="color: #868e96; font-size: 11px;">DeepSeek API Key (選填，填入可開啟大模型語意分析)</label>
+        <input type="password" id="deepseekApiKey" placeholder="sk-..." onchange="saveApiKey(this.value)">
+      </div>
       <div class="modal-actions">
         <button class="modal-btn btn-cancel" onclick="closeManualModal()">取消</button>
         <button class="modal-btn btn-save" id="btnSaveRecord" onclick="saveManualRecord()">儲存</button>
@@ -632,7 +618,7 @@
     </div>
   </div>
 
-  <!-- 真正視覺化大日曆彈窗 -->
+  <!-- 大日曆彈窗 -->
   <div class="modal-overlay" id="calendarModal">
     <div class="modal-card">
       <div class="modal-header">
@@ -653,7 +639,7 @@
   </div>
 
   <script>
-    // MARK: - 1. 主題配置
+    // MARK: - 1. 主題配色
     const THEMES = [
       {
         name: "流沙星辰",
@@ -712,9 +698,8 @@
 
     if (records.length === 0) {
       records = [
-        { id: 1, title: "星巴克拿鐵", amount: 45, category: "餐飲美食", isIncome: false, date: new Date().toISOString() },
-        { id: 2, title: "港鐵車費", amount: 15.2, category: "交通出行", isIncome: false, date: new Date().toISOString() },
-        { id: 3, title: "九月專案薪資", amount: 6500, category: "薪資收入", isIncome: true, date: new Date().toISOString() }
+        { id: 1, title: "薩莉亞", amount: 60, category: "餐飲美食", isIncome: false, date: new Date().toISOString() },
+        { id: 2, title: "港鐵車費", amount: 15.2, category: "交通出行", isIncome: false, date: new Date().toISOString() }
       ];
       saveData();
     }
@@ -723,6 +708,7 @@
     let selectedDate = new Date();
     let calBrowsingDate = new Date();
     let currentCategoryFilter = null;
+    let deepseekKey = localStorage.getItem('deepseek_api_key') || '';
 
     function saveData() {
       try {
@@ -730,12 +716,17 @@
       } catch(e) {}
     }
 
-    // MARK: - 3. 智慧多項目解析器
+    function saveApiKey(val) {
+      deepseekKey = val.trim();
+      localStorage.setItem('deepseek_api_key', deepseekKey);
+    }
+
+    // MARK: - 3. 智慧主題與贅字清理引擎
     const CATEGORY_MAP = {
-      "餐飲美食": ["飯", "麵", "食", "咖啡", "外賣", "早餐", "午餐", "晚餐", "茶餐廳", "凍飲", "壽司", "starbucks", "coffee", "food", "drink", "晏", "宴"],
+      "餐飲美食": ["飯", "麵", "食", "咖啡", "外賣", "早餐", "午餐", "晚餐", "茶餐廳", "凍飲", "壽司", "薩莉亞", "starbucks", "m記", "麥當勞", "吉野家", "譚仔", "南記", "酒樓", "cafe", "food", "drink", "晏", "宴"],
       "交通出行": ["搭車", "搭", "行路", "行", "走路", "步行", "車", "車費", "地鐵", "巴士", "的士", "打車", "uber", "八達通", "mtr", "bus", "taxi", "油費", "泊車", "小巴", "渡輪", "電車", "輕鐵", "過海", "walk", "train"],
-      "購物消費": ["買", "淘寶", "超市", "百佳", "惠康", "衫", "褲", "鞋", "購物", "shopping", "clothes", "書"],
-      "休閒娛樂": ["戲院", "電影", "唱k", "演唱會", "旅行", "酒店", "game", "steam", "movie"],
+      "購物消費": ["買", "淘寶", "超市", "百佳", "惠康", "衫", "褲", "鞋", "購物", "shopping", "clothes", "書", "萬寧", "屈臣氏", "uniqlo"],
+      "休閒娛樂": ["戲院", "電影", "唱k", "演唱會", "旅行", "酒店", "game", "steam", "switch", "ps5", "movie"],
       "居家生活": ["租金", "水費", "電費", "煤氣", "寬頻", "電話費", "rent", "bill"],
       "醫療健康": ["醫生", "感冒", "睇病", "藥", "醫院", "診所", "doctor", "clinic"],
       "薪資收入": ["出糧", "收錢", "轉入", "薪水", "人工", "獎金", "收入", "salary", "bonus"]
@@ -752,7 +743,31 @@
       "其他雜項": "📦"
     };
 
-    function parseMultiItems(text) {
+    function cleanTitleTopic(text) {
+      let s = text;
+      // 移除金額及幣值單位
+      s = s.replace(/(\$?\s*[0-9]+(\.[0-9]{1,2})?\s*(蚊|元|塊|dollars|hkd|usd)?\$?)/gi, "");
+
+      // 剝除口語贅字
+      const stopWords = [
+        "我今日", "今日", "琴日", "尋日", "去咗", "去左", "係", "喺", "到", "食咗", "食左", "買咗", "買左",
+        "用咗", "用左", "使咗", "使左", "花咗", "花左", "花了", "花費", "用", "食", "買", "搭",
+        "仲有", "同埋", "跟住", "加埋", "\\$"
+      ];
+      for (let w of stopWords) {
+        s = s.replace(new RegExp(w, 'g'), "");
+      }
+      s = s.trim();
+
+      // 特定知名連鎖餐廳補齊全名（提升閱讀品質）
+      if (s === "薩莉亞") s = "薩莉亞意式餐廳";
+      if (s === "麥當勞" || s.toLowerCase() === "m記") s = "麥當勞";
+      if (s === "星巴克") s = "星巴克咖啡";
+
+      return s;
+    }
+
+    function parseMultiItemsLocal(text) {
       let normalized = text.replace(/(同埋|加埋|跟住|然後|仲有|，|、|。| and | then |\n|;)/g, ",");
       let segments = normalized.split(",").map(s => s.trim()).filter(s => s.length > 0);
 
@@ -791,9 +806,7 @@
             }
           }
 
-          let title = seg.replace(/(\$?\s*[0-9]+(\.[0-9]{1,2})?\s*(蚊|元|塊|dollars|hkd|usd)?\$?)/gi, "")
-                         .replace(/(我今日|今日|用咗|用左|花了|花費|用|\$)/g, "")
-                         .trim();
+          let title = cleanTitleTopic(seg);
           if (!title) title = category;
 
           parsedList.push({
@@ -809,9 +822,53 @@
       return parsedList;
     }
 
-    // MARK: - 4. 語音辨識（點擊安全啟動）
+    // 可選 DeepSeek 大模型連線分析（有填 Key 才使用）
+    async function parseWithDeepSeek(rawText) {
+      if (!deepseekKey) return parseMultiItemsLocal(rawText);
+
+      try {
+        const prompt = `你是一個專業記帳助手。請分析以下這句話：「${rawText}」。提取出所有記帳項目，去除「去咗、食咗、買咗、用咗」等贅字，直接提取核心主題（如薩莉亞、港鐵車費）。
+輸出格式必須是純 JSON 陣列，不要有任何 Markdown 或額外文字，格式如下：
+[{"title":"項目名稱","amount":60.0,"category":"餐飲美食","isIncome":false}]
+可選分類：餐飲美食、交通出行、購物消費、休閒娛樂、居家生活、醫療健康、薪資收入、其他雜項。`;
+
+        const resp = await fetch('https://api.deepseek.com/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${deepseekKey}`
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.1
+          })
+        });
+
+        const data = await resp.json();
+        let content = data.choices[0].message.content.trim();
+        content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+        const jsonList = JSON.parse(content);
+
+        return jsonList.map(item => ({
+          id: Date.now() + Math.random(),
+          title: item.title,
+          amount: parseFloat(item.amount) || 0,
+          category: item.category || "其他雜項",
+          isIncome: Boolean(item.isIncome),
+          date: new Date().toISOString()
+        }));
+      } catch (err) {
+        // 連網失敗或超時，自動回退本地規則
+        return parseMultiItemsLocal(rawText);
+      }
+    }
+
+    // MARK: - 4. 手動按鈕控制語音錄音（停頓不自動中斷）
     let speechRecognitionInstance = null;
     let isSpeechRecording = false;
+    let accumulatedTranscript = '';
+    let manualStopRequested = false;
 
     function initSpeechEngine() {
       if (speechRecognitionInstance) return speechRecognitionInstance;
@@ -819,35 +876,48 @@
         const SpeechClass = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechClass) return null;
         const rec = new SpeechClass();
-        rec.continuous = false;
+        rec.continuous = true; // 開啟持續收音，停頓時不中斷
         rec.interimResults = true;
         rec.lang = 'zh-HK';
 
         rec.onstart = () => {
           isSpeechRecording = true;
+          manualStopRequested = false;
+          accumulatedTranscript = '';
           document.getElementById('micBtn').classList.add('recording');
           const tip = document.getElementById('speechTip');
           tip.style.display = 'block';
-          tip.innerText = '正在聆聽... (如：行路5蚊，搭車70蚊)';
+          tip.innerText = '正在聆聽... (說完請再點擊麥克風停止)';
         };
 
         rec.onresult = (event) => {
-          let str = '';
+          let currentStr = '';
           for (let i = event.resultIndex; i < event.results.length; ++i) {
-            str += event.results[i][0].transcript;
+            currentStr += event.results[i][0].transcript;
           }
-          if (str) document.getElementById('speechTip').innerText = str;
+          if (currentStr) {
+            accumulatedTranscript = currentStr;
+            document.getElementById('speechTip').innerText = currentStr;
+          }
         };
 
-        rec.onend = () => {
+        rec.onend = async () => {
+          // 若不是使用者主動點擊停止，自動重新啟動保持連線（防系統靜音超時中斷）
+          if (!manualStopRequested && isSpeechRecording) {
+            try { rec.start(); return; } catch(e) {}
+          }
+
           isSpeechRecording = false;
           document.getElementById('micBtn').classList.remove('recording');
           const tip = document.getElementById('speechTip');
-          const text = tip.innerText;
           tip.style.display = 'none';
 
-          if (text && !text.startsWith('正在聆聽')) {
-            let newItems = parseMultiItems(text);
+          if (accumulatedTranscript && !accumulatedTranscript.startsWith('正在聆聽')) {
+            tip.style.display = 'block';
+            tip.innerText = '正在智慧分析主題...';
+            const newItems = await parseWithDeepSeek(accumulatedTranscript);
+            tip.style.display = 'none';
+
             if (newItems.length > 0) {
               records.unshift(...newItems);
               saveData();
@@ -856,10 +926,12 @@
           }
         };
 
-        rec.onerror = () => {
-          isSpeechRecording = false;
-          document.getElementById('micBtn').classList.remove('recording');
-          document.getElementById('speechTip').style.display = 'none';
+        rec.onerror = (e) => {
+          if (manualStopRequested) {
+            isSpeechRecording = false;
+            document.getElementById('micBtn').classList.remove('recording');
+            document.getElementById('speechTip').style.display = 'none';
+          }
         };
 
         speechRecognitionInstance = rec;
@@ -872,17 +944,19 @@
     function toggleSpeech() {
       const rec = initSpeechEngine();
       if (!rec) {
-        alert("請在 iPhone Safari 中開啟並允許麥克風權限以進行語音記帳。");
+        alert("請使用 iPhone Safari 開啟並允許麥克風權限以進行語音記帳。");
         return;
       }
       if (isSpeechRecording) {
+        manualStopRequested = true;
         rec.stop();
       } else {
+        manualStopRequested = false;
         rec.start();
       }
     }
 
-    // MARK: - 5. 介面渲染與滑動刪除 (Swipe-to-delete)
+    // MARK: - 5. 介面渲染與完美回彈滑動刪除
     function formatDateDisplay() {
       const y = selectedDate.getFullYear();
       const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
@@ -966,7 +1040,7 @@
         list.innerHTML = `
           <div style="text-align: center; margin-top: 50px; font-weight: 800; color: #000;">
             <div style="font-size: 36px; margin-bottom: 8px;">📭</div>
-            暫無此時段記錄 (可按左下角鉛筆手動添加)
+            暫無此時段記錄
           </div>`;
         return;
       }
@@ -979,13 +1053,11 @@
         const wrapper = document.createElement('div');
         wrapper.className = 'record-wrapper';
 
-        // 紅色刪除底層按鈕
         const deleteBtn = document.createElement('div');
         deleteBtn.className = 'delete-swipe-btn';
         deleteBtn.innerText = '刪除 🗑️';
         deleteBtn.onclick = () => deleteRecordById(r.id);
 
-        // 卡片主體
         const card = document.createElement('div');
         card.className = 'record-card';
         card.innerHTML = `
@@ -1001,9 +1073,10 @@
           </div>
         `;
 
-        // 綁定原生觸控滑動手勢 (Swipe Gesture)
+        // 升級雙向手勢控制（支援向右拉回復位）
         let startX = 0;
-        let currentTranslate = 0;
+        let currentX = 0;
+        let isOpened = false;
 
         card.addEventListener('touchstart', (e) => {
           startX = e.touches[0].clientX;
@@ -1012,28 +1085,55 @@
 
         card.addEventListener('touchmove', (e) => {
           const moveX = e.touches[0].clientX;
-          const diffX = moveX - startX;
-          if (diffX < 0) {
-            // 向左滑
-            currentTranslate = Math.max(diffX, -85);
-            card.style.transform = `translateX(${currentTranslate}px)`;
-          } else if (currentTranslate < 0 && diffX > 0) {
-            // 向右滑復位
-            let backX = Math.min(-85 + diffX, 0);
-            card.style.transform = `translateX(${backX}px)`;
+          const deltaX = moveX - startX;
+
+          if (isOpened) {
+            // 已展開狀態下，支援向右拉回 (0 到 -90px 之間跟隨手指)
+            if (deltaX > 0) {
+              currentX = Math.min(-90 + deltaX, 0);
+              card.style.transform = `translateX(${currentX}px)`;
+            }
+          } else {
+            // 未展開狀態下，支援向左拉出
+            if (deltaX < 0) {
+              currentX = Math.max(deltaX, -100);
+              card.style.transform = `translateX(${currentX}px)`;
+            }
           }
         }, { passive: true });
 
         card.addEventListener('touchend', () => {
-          card.style.transition = 'transform 0.2s ease-out';
-          if (currentTranslate < -40) {
-            // 滑出刪除按鈕
-            card.style.transform = 'translateX(-85px)';
-            currentTranslate = -85;
+          card.style.transition = 'transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1)';
+          if (isOpened) {
+            // 已展開狀態：向右滑動超過 25px 立即自動復位
+            if (currentX > -65) {
+              card.style.transform = 'translateX(0px)';
+              isOpened = false;
+              currentX = 0;
+            } else {
+              card.style.transform = 'translateX(-90px)';
+              currentX = -90;
+            }
           } else {
-            // 彈回原位
+            // 未展開狀態：向左滑動超過 35px 則卡在刪除位置
+            if (currentX < -35) {
+              card.style.transform = 'translateX(-90px)';
+              isOpened = true;
+              currentX = -90;
+            } else {
+              card.style.transform = 'translateX(0px)';
+              currentX = 0;
+            }
+          }
+        });
+
+        // 點擊卡片本體自動復位
+        card.addEventListener('click', () => {
+          if (isOpened) {
+            card.style.transition = 'transform 0.2s ease-out';
             card.style.transform = 'translateX(0px)';
-            currentTranslate = 0;
+            isOpened = false;
+            currentX = 0;
           }
         });
 
@@ -1043,7 +1143,7 @@
       });
     }
 
-    // MARK: - 6. 視覺化大月曆彈窗邏輯
+    // MARK: - 6. 大日曆操作
     function openDateModal() {
       calBrowsingDate = new Date(selectedDate.getTime());
       renderCalendarView();
@@ -1074,7 +1174,6 @@
       const grid = document.getElementById('calGrid');
       grid.innerHTML = '';
 
-      // 星期標題
       const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
       weekdays.forEach(w => {
         const div = document.createElement('div');
@@ -1083,18 +1182,15 @@
         grid.appendChild(div);
       });
 
-      // 計算本月第一天星期幾與總天數
       const firstDay = new Date(year, month, 1).getDay();
       const totalDays = new Date(year, month + 1, 0).getDate();
 
-      // 前置空白格
       for (let i = 0; i < firstDay; i++) {
         const empty = document.createElement('div');
         empty.className = 'cal-day-btn empty';
         grid.appendChild(empty);
       }
 
-      // 渲染每一天按鈕
       for (let day = 1; day <= totalDays; day++) {
         const btn = document.createElement('button');
         btn.className = 'cal-day-btn';
@@ -1121,18 +1217,19 @@
       }
     }
 
-    // MARK: - 7. 手動記帳彈窗
+    // MARK: - 7. 手動新增彈窗
     function openManualModal() {
       document.getElementById('manualModal').style.display = 'flex';
       document.getElementById('manualInputText').value = '';
       document.getElementById('manualTitle').value = '';
       document.getElementById('manualAmount').value = '';
+      document.getElementById('deepseekApiKey').value = deepseekKey;
     }
     function closeManualModal() {
       document.getElementById('manualModal').style.display = 'none';
     }
     function autoParseInput(val) {
-      let items = parseMultiItems(val);
+      let items = parseMultiItemsLocal(val);
       if (items.length > 0) {
         document.getElementById('manualTitle').value = items[0].title;
         document.getElementById('manualAmount').value = items[0].amount;
@@ -1161,7 +1258,7 @@
       closeManualModal();
     }
 
-    // MARK: - 8. Excel 匯出
+    // MARK: - 8. Excel (CSV) 導出
     function exportToExcel() {
       let csv = "\uFEFF";
       csv += "記錄日期,記錄時間,收支類型,消費分類,項目名稱,金額(HKD)\n";
