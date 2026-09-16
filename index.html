@@ -3,12 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <title>我的小帳目</title>
-  <!-- PWA 全螢幕與 iOS 原生配置 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="我的小帳目">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23e64980'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>🌸</text></svg>">
 
   <style>
     * {
@@ -16,7 +14,6 @@
       margin: 0;
       padding: 0;
       -webkit-tap-highlight-color: transparent;
-      user-select: none;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
     }
 
@@ -25,14 +22,18 @@
       width: 100vw;
       height: 100vh;
       color: #000000;
-      display: flex;
-      flex-direction: column;
-      background: #000;
+      background: #0a0e1a;
+      position: relative;
     }
 
-    /* 動態粒子 Canvas */
+    input, select, textarea {
+      -webkit-user-select: auto;
+      user-select: auto;
+    }
+
+    /* 背景動態粒子 Canvas */
     #bgCanvas {
-      position: fixed;
+      position: absolute;
       top: 0;
       left: 0;
       width: 100%;
@@ -41,15 +42,16 @@
       pointer-events: none;
     }
 
-    /* 主介面容器（避開 iPhone 動態島/瀏海與底部橫條） */
+    /* 主容器 */
     #appContainer {
       position: relative;
-      z-index: 2;
+      z-index: 10;
       width: 100%;
       height: 100%;
       display: flex;
       flex-direction: column;
-      padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px) 16px;
+      padding: env(safe-area-inset-top, 24px) 16px env(safe-area-inset-bottom, 20px) 16px;
+      pointer-events: auto;
     }
 
     /* 頂部導航欄 */
@@ -58,19 +60,20 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 12px;
-      padding-top: 6px;
+      padding-top: 4px;
     }
     .app-title {
       font-size: 24px;
       font-weight: 800;
-      color: var(--title-color, #000);
-      letter-spacing: 0.5px;
+      color: #ffffff;
+      transition: color 0.3s;
     }
     .date-display {
       font-size: 13px;
       font-weight: 700;
-      color: var(--subtitle-color, #222);
+      color: rgba(255, 255, 255, 0.85);
       margin-top: 2px;
+      transition: color 0.3s;
     }
     .top-actions {
       display: flex;
@@ -80,25 +83,23 @@
       background: #ffffff;
       border: none;
       border-radius: 20px;
-      padding: 6px 12px;
+      padding: 7px 12px;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       color: #000000;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
       cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      active: scale(0.96);
     }
 
-    /* 收支總覽卡片 */
+    /* 收支統計卡片 */
     .summary-card {
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border-radius: 18px;
       padding: 14px 16px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.12);
       margin-bottom: 10px;
     }
     .summary-numbers {
@@ -108,28 +109,27 @@
     }
     .sum-label {
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       color: #000000;
-      margin-bottom: 2px;
     }
     .expense-val {
       font-size: 26px;
       font-weight: 900;
-      color: #d6336c;
+      color: #e03131;
     }
     .income-val {
       font-size: 22px;
       font-weight: 900;
-      color: #2b8a3e;
+      color: #2f9e44;
       text-align: right;
     }
 
-    /* 維度切換與翻查 */
+    /* 維度與日期導航 */
     .controls-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-top: 1px solid rgba(0,0,0,0.1);
+      border-top: 1px solid rgba(0,0,0,0.12);
       padding-top: 10px;
     }
     .dim-picker {
@@ -141,9 +141,9 @@
     .dim-btn {
       border: none;
       background: transparent;
-      padding: 5px 12px;
-      font-size: 12px;
-      font-weight: 700;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 800;
       color: #000;
       border-radius: 8px;
       cursor: pointer;
@@ -159,9 +159,9 @@
     .sub-btn {
       background: #ffffff;
       border: 1px solid #ced4da;
-      padding: 5px 10px;
+      padding: 6px 10px;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
       color: #000000;
       border-radius: 8px;
       cursor: pointer;
@@ -180,16 +180,16 @@
       flex-shrink: 0;
       background: #ffffff;
       border: none;
-      padding: 6px 14px;
+      padding: 7px 14px;
       border-radius: 14px;
       font-size: 13px;
       font-weight: 800;
       color: #000000;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       cursor: pointer;
     }
     .filter-chip.active {
-      background: var(--theme-primary, #e64980);
+      background: #d4af37;
       color: #ffffff;
     }
 
@@ -201,16 +201,16 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      padding-bottom: 80px;
+      padding-bottom: 85px;
     }
     .record-card {
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.94);
       border-radius: 14px;
       padding: 12px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
     .rec-left {
       display: flex;
@@ -232,13 +232,13 @@
       flex-direction: column;
     }
     .rec-title {
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 800;
       color: #000000;
     }
     .rec-time {
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       color: #495057;
       margin-top: 2px;
     }
@@ -258,42 +258,35 @@
       justify-content: center;
       align-items: center;
       gap: 36px;
-      pointer-events: none;
-    }
-    .bottom-bar button {
-      pointer-events: auto;
+      z-index: 20;
     }
     .mic-btn {
-      width: 66px;
-      height: 66px;
+      width: 68px;
+      height: 68px;
       border-radius: 50%;
       border: none;
-      background: var(--theme-primary, #e64980);
+      background: #d4af37;
       color: #ffffff;
       font-size: 28px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: transform 0.15s ease;
-    }
-    .mic-btn:active {
-      transform: scale(0.92);
     }
     .mic-btn.recording {
       background: #fa5252;
       animation: pulse 1.2s infinite;
     }
     .pen-btn {
-      width: 48px;
-      height: 48px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
       border: none;
       background: #ffffff;
       color: #000000;
-      font-size: 20px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+      font-size: 22px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -305,50 +298,45 @@
       100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250, 82, 82, 0); }
     }
 
-    /* 語音狀態文字條 */
     .speech-tip {
       position: absolute;
-      bottom: 86px;
+      bottom: 96px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(255, 255, 255, 0.95);
-      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.98);
+      padding: 8px 18px;
       border-radius: 12px;
       font-size: 13px;
       font-weight: 800;
       color: #000000;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      box-shadow: 0 3px 12px rgba(0,0,0,0.2);
       white-space: nowrap;
       display: none;
+      z-index: 25;
     }
 
-    /* 隱藏原生日期輸入框 */
-    #hiddenDatePicker {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    /* 彈出視窗（手動輸入） */
+    /* 彈窗樣式 */
     .modal-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0,0,0,0.55);
       backdrop-filter: blur(4px);
       z-index: 100;
       display: none;
       justify-content: center;
-      align-items: flex-end;
+      align-items: center;
+      padding: 16px;
     }
-    .modal-sheet {
+    .modal-card {
       width: 100%;
-      max-width: 500px;
+      max-width: 420px;
       background: #ffffff;
-      border-radius: 20px 20px 0 0;
-      padding: 20px 18px env(safe-area-inset-bottom, 24px) 18px;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.25);
     }
     .modal-header {
       display: flex;
@@ -367,7 +355,7 @@
     .input-group label {
       display: block;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
       color: #000;
       margin-bottom: 4px;
     }
@@ -395,22 +383,19 @@
       cursor: pointer;
     }
     .btn-cancel { background: #e9ecef; color: #000; }
-    .btn-save { background: var(--theme-primary, #e64980); color: #fff; }
+    .btn-save { background: #d4af37; color: #fff; }
   </style>
 </head>
 <body>
 
-  <!-- 背景動畫 Canvas -->
+  <!-- 獨立背景動畫 Canvas -->
   <canvas id="bgCanvas"></canvas>
-
-  <!-- 日期選擇隱藏 input -->
-  <input type="date" id="hiddenDatePicker">
 
   <div id="appContainer">
     <!-- 頂部欄 -->
     <div class="top-bar">
       <div>
-        <div class="app-title">我的小帳目</div>
+        <div class="app-title" id="appTitle">我的小帳目</div>
         <div class="date-display" id="dateDisplay">載入中...</div>
       </div>
       <div class="top-actions">
@@ -419,7 +404,7 @@
       </div>
     </div>
 
-    <!-- 收支統計卡片 -->
+    <!-- 收支總覽卡片 -->
     <div class="summary-card">
       <div class="summary-numbers">
         <div>
@@ -439,13 +424,13 @@
         </div>
         <div class="nav-actions">
           <button class="sub-btn" onclick="shiftDate(-1)">◀ 前一天</button>
-          <button class="sub-btn" onclick="openDatePicker()">📅 挑選日期</button>
+          <button class="sub-btn" onclick="openDateModal()">📅 挑選日期</button>
           <button class="sub-btn" onclick="shiftDate(1)">後一天 ▶</button>
         </div>
       </div>
     </div>
 
-    <!-- 類別標籤滑動列 -->
+    <!-- 類別篩選滑動列 -->
     <div class="filter-scroll" id="categoryChips">
       <button class="filter-chip active" onclick="filterCategory(null)">全部</button>
       <button class="filter-chip" onclick="filterCategory('餐飲美食')">餐飲美食</button>
@@ -461,7 +446,7 @@
     <!-- 記帳流水清單 -->
     <div class="record-list" id="recordList"></div>
 
-    <!-- 語音提示條 -->
+    <!-- 語音識別提示條 -->
     <div class="speech-tip" id="speechTip">正在聆聽... (如：行路5蚊，搭車70蚊)</div>
 
     <!-- 底部操作按鈕 -->
@@ -471,15 +456,15 @@
     </div>
   </div>
 
-  <!-- 手動輸入彈窗 -->
+  <!-- 手動記帳彈窗 -->
   <div class="modal-overlay" id="manualModal">
-    <div class="modal-sheet">
+    <div class="modal-card">
       <div class="modal-header">
         <h3>新增記帳記錄</h3>
-        <span style="font-size: 22px; cursor: pointer;" onclick="closeManualModal()">✕</span>
+        <span style="font-size: 22px; cursor: pointer; font-weight: bold;" onclick="closeManualModal()">✕</span>
       </div>
       <div class="input-group">
-        <label>智能輸入（自動識別金額與類別）</label>
+        <label>智能輸入（自動推斷金額與分類）</label>
         <input type="text" id="manualInputText" placeholder="如：食晏 50 蚊 / 搭車 20" oninput="autoParseInput(this.value)">
       </div>
       <div class="input-group">
@@ -505,18 +490,36 @@
       </div>
       <div class="modal-actions">
         <button class="modal-btn btn-cancel" onclick="closeManualModal()">取消</button>
-        <button class="modal-btn btn-save" onclick="saveManualRecord()">儲存</button>
+        <button class="modal-btn btn-save" id="btnSaveRecord" onclick="saveManualRecord()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 日曆挑選彈窗（原生可靠視圖） -->
+  <div class="modal-overlay" id="calendarModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>選擇翻查日期</h3>
+        <span style="font-size: 22px; cursor: pointer; font-weight: bold;" onclick="closeDateModal()">✕</span>
+      </div>
+      <div class="input-group">
+        <label>選擇任何一天</label>
+        <input type="date" id="calendarPickerInput">
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn btn-cancel" onclick="closeDateModal()">取消</button>
+        <button class="modal-btn btn-save" id="btnConfirmDate" onclick="confirmDateSelect()">確認翻查</button>
       </div>
     </div>
   </div>
 
   <script>
-    // MARK: - 1. 主題配色與流動背景配置
+    // MARK: - 1. 主題配色
     const THEMES = [
       {
         name: "流沙星辰",
         bg1: "#0a0e1a",
-        bg2: "#20183b",
+        bg2: "#1d1633",
         primary: "#d4af37",
         titleColor: "#ffffff",
         subColor: "rgba(255,255,255,0.85)",
@@ -552,37 +555,38 @@
         subColor: "rgba(255,255,255,0.85)",
         particleColor: "rgba(248, 187, 208, 0.85)",
         isStar: false
-      },
-      {
-        name: "富士初雪",
-        bg1: "#f0f8ff",
-        bg2: "#d0e8ff",
-        primary: "#1971c2",
-        titleColor: "#000000",
-        subColor: "#222222",
-        particleColor: "rgba(255, 255, 255, 0.9)",
-        isStar: false
       }
     ];
 
     let currentThemeIdx = 0;
 
-    // MARK: - 2. 狀態管理
-    let records = JSON.parse(localStorage.getItem('my_ledger_records') || '[]');
+    // MARK: - 2. 狀態管理與本地儲存
+    let records = [];
+    try {
+      const stored = localStorage.getItem('my_ledger_records');
+      if (stored) records = JSON.parse(stored);
+    } catch(e) { records = []; }
+
     if (records.length === 0) {
       records = [
-        { id: 1, title: "星巴克咖啡", amount: 45, category: "餐飲美食", isIncome: false, date: new Date().toISOString() },
+        { id: 1, title: "星巴克拿鐵", amount: 45, category: "餐飲美食", isIncome: false, date: new Date().toISOString() },
         { id: 2, title: "港鐵車費", amount: 15.2, category: "交通出行", isIncome: false, date: new Date().toISOString() },
-        { id: 3, title: "設計專案入帳", amount: 6500, category: "薪資收入", isIncome: true, date: new Date().toISOString() }
+        { id: 3, title: "九月專案薪資", amount: 6500, category: "薪資收入", isIncome: true, date: new Date().toISOString() }
       ];
       saveData();
     }
 
-    let currentDimension = 'day'; // 'day' | 'month' | 'year'
+    let currentDimension = 'day';
     let selectedDate = new Date();
     let currentCategoryFilter = null;
 
-    // MARK: - 3. 智慧多項目解析器
+    function saveData() {
+      try {
+        localStorage.setItem('my_ledger_records', JSON.stringify(records));
+      } catch(e) {}
+    }
+
+    // MARK: - 3. 智慧多項目解析
     const CATEGORY_MAP = {
       "餐飲美食": ["飯", "麵", "食", "咖啡", "外賣", "早餐", "午餐", "晚餐", "茶餐廳", "凍飲", "壽司", "starbucks", "coffee", "food", "drink", "晏", "宴"],
       "交通出行": ["搭車", "搭", "行路", "行", "走路", "步行", "車", "車費", "地鐵", "巴士", "的士", "打車", "uber", "八達通", "mtr", "bus", "taxi", "油費", "泊車", "小巴", "渡輪", "電車", "輕鐵", "過海", "walk", "train"],
@@ -605,11 +609,9 @@
     };
 
     function parseMultiItems(text) {
-      // 替換常見連接詞
       let normalized = text.replace(/(同埋|加埋|跟住|然後|仲有|，|、|。| and | then |\n|;)/g, ",");
       let segments = normalized.split(",").map(s => s.trim()).filter(s => s.length > 0);
 
-      // 無標點但包含多個金額數字的情況
       if (segments.length === 1) {
         const matches = [...text.matchAll(/([0-9]+(\.[0-9]{1,2})?\s*(蚊|元|塊|dollars|hkd|usd)?)/gi)];
         if (matches.length > 1) {
@@ -645,7 +647,6 @@
             }
           }
 
-          // 清理標題文字
           let title = seg.replace(/(\$?\s*[0-9]+(\.[0-9]{1,2})?\s*(蚊|元|塊|dollars|hkd|usd)?\$?)/gi, "")
                          .replace(/(我今日|今日|用咗|用左|花了|花費|用|\$)/g, "")
                          .trim();
@@ -664,72 +665,80 @@
       return parsedList;
     }
 
-    // MARK: - 4. 語音識別（支援廣東話、普通話、英文感知）
-    let recognition = null;
-    let isRecording = false;
+    // MARK: - 4. 語音辨識（延遲初始化，點擊才載入，絕不阻斷）
+    let speechRecognitionInstance = null;
+    let isSpeechRecording = false;
 
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = 'zh-HK'; // 香港雙語模型，原生感知廣東話、普通話與混合英文
+    function initSpeechEngine() {
+      if (speechRecognitionInstance) return speechRecognitionInstance;
+      try {
+        const SpeechClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechClass) return null;
+        const rec = new SpeechClass();
+        rec.continuous = false;
+        rec.interimResults = true;
+        rec.lang = 'zh-HK';
 
-      recognition.onstart = () => {
-        isRecording = true;
-        document.getElementById('micBtn').classList.add('recording');
-        document.getElementById('speechTip').style.display = 'block';
-        document.getElementById('speechTip').innerText = '正在聆聽... (如：行路5蚊，搭車70蚊)';
-      };
+        rec.onstart = () => {
+          isSpeechRecording = true;
+          document.getElementById('micBtn').classList.add('recording');
+          const tip = document.getElementById('speechTip');
+          tip.style.display = 'block';
+          tip.innerText = '正在聆聽... (如：行路5蚊，搭車70蚊)';
+        };
 
-      recognition.onresult = (event) => {
-        let currentTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          currentTranscript += event.results[i][0].transcript;
-        }
-        document.getElementById('speechTip').innerText = currentTranscript || '聆聽中...';
-      };
-
-      recognition.onend = () => {
-        isRecording = false;
-        document.getElementById('micBtn').classList.remove('recording');
-        let text = document.getElementById('speechTip').innerText;
-        document.getElementById('speechTip').style.display = 'none';
-
-        if (text && !text.startsWith('正在聆聽') && !text.startsWith('聆聽中')) {
-          let newItems = parseMultiItems(text);
-          if (newItems.length > 0) {
-            records.unshift(...newItems);
-            saveData();
-            render();
+        rec.onresult = (event) => {
+          let str = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            str += event.results[i][0].transcript;
           }
-        }
-      };
+          if (str) document.getElementById('speechTip').innerText = str;
+        };
 
-      recognition.onerror = () => {
-        isRecording = false;
-        document.getElementById('micBtn').classList.remove('recording');
-        document.getElementById('speechTip').style.display = 'none';
-      };
+        rec.onend = () => {
+          isSpeechRecording = false;
+          document.getElementById('micBtn').classList.remove('recording');
+          const tip = document.getElementById('speechTip');
+          const text = tip.innerText;
+          tip.style.display = 'none';
+
+          if (text && !text.startsWith('正在聆聽')) {
+            let newItems = parseMultiItems(text);
+            if (newItems.length > 0) {
+              records.unshift(...newItems);
+              saveData();
+              render();
+            }
+          }
+        };
+
+        rec.onerror = () => {
+          isSpeechRecording = false;
+          document.getElementById('micBtn').classList.remove('recording');
+          document.getElementById('speechTip').style.display = 'none';
+        };
+
+        speechRecognitionInstance = rec;
+        return rec;
+      } catch(e) {
+        return null;
+      }
     }
 
     function toggleSpeech() {
-      if (!recognition) {
-        alert("此瀏覽器不支援語音辨識，請在 iPhone Safari 中開啟。");
+      const rec = initSpeechEngine();
+      if (!rec) {
+        alert("目前環境無法啟用麥克風語音，請確認已使用 iPhone Safari 開啟並已允許麥克風權限。");
         return;
       }
-      if (isRecording) {
-        recognition.stop();
+      if (isSpeechRecording) {
+        rec.stop();
       } else {
-        recognition.start();
+        rec.start();
       }
     }
 
-    // MARK: - 5. 介面渲染與操作
-    function saveData() {
-      localStorage.setItem('my_ledger_records', JSON.stringify(records));
-    }
-
+    // MARK: - 5. 介面渲染
     function formatDateDisplay() {
       const y = selectedDate.getFullYear();
       const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
@@ -753,30 +762,12 @@
       render();
     }
 
-    function openDatePicker() {
-      const picker = document.getElementById('hiddenDatePicker');
-      picker.value = selectedDate.toISOString().split('T')[0];
-      picker.onchange = () => {
-        if (picker.value) {
-          selectedDate = new Date(picker.value);
-          currentDimension = 'day';
-          updateDimensionButtons();
-          render();
-        }
-      };
-      picker.showPicker ? picker.showPicker() : picker.click();
-    }
-
     function setDimension(dim) {
       currentDimension = dim;
-      updateDimensionButtons();
-      render();
-    }
-
-    function updateDimensionButtons() {
       document.querySelectorAll('.dim-btn').forEach((btn, i) => {
         btn.classList.toggle('active', ['day', 'month', 'year'][i] === currentDimension);
       });
+      render();
     }
 
     function filterCategory(cat) {
@@ -790,7 +781,6 @@
     function render() {
       document.getElementById('dateDisplay').innerText = formatDateDisplay();
 
-      // 篩選當前維度與分類
       const selY = selectedDate.getFullYear();
       const selM = selectedDate.getMonth();
       const selD = selectedDate.getDate();
@@ -809,7 +799,6 @@
         return timeMatch && catMatch;
       });
 
-      // 計算收支總額
       let totalExpense = 0;
       let totalIncome = 0;
       filtered.forEach(r => {
@@ -820,13 +809,12 @@
       document.getElementById('totalExpenseDisplay').innerText = `$${totalExpense.toFixed(2)}`;
       document.getElementById('totalIncomeDisplay').innerText = `$${totalIncome.toFixed(2)}`;
 
-      // 渲染列表
-      const listContainer = document.getElementById('recordList');
-      listContainer.innerHTML = '';
+      const list = document.getElementById('recordList');
+      list.innerHTML = '';
 
       if (filtered.length === 0) {
-        listContainer.innerHTML = `
-          <div style="text-align: center; margin-top: 50px; font-weight: 700; color: #000;">
+        list.innerHTML = `
+          <div style="text-align: center; margin-top: 50px; font-weight: 800; color: #000;">
             <div style="font-size: 36px; margin-bottom: 8px;">📭</div>
             暫無此時段的記帳記錄
           </div>`;
@@ -848,127 +836,36 @@
               <div class="rec-time">${r.category} · ${timeStr}</div>
             </div>
           </div>
-          <div class="rec-amount" style="color: ${r.isIncome ? '#2b8a3e' : '#000000'};">
+          <div class="rec-amount" style="color: ${r.isIncome ? '#2f9e44' : '#000000'};">
             ${r.isIncome ? '+' : '-'}$${r.amount.toFixed(2)}
           </div>
         `;
-        listContainer.appendChild(card);
+        list.appendChild(card);
       });
     }
 
-    // MARK: - 6. Excel (CSV) 導出
-    function exportToExcel() {
-      let csv = "\uFEFF"; // UTF-8 BOM，防止 Excel 打開中文時出現亂碼
-      csv += "記錄日期,記錄時間,收支類型,消費分類,項目名稱,金額(HKD)\n";
-
-      records.forEach(r => {
-        const d = new Date(r.date);
-        const dateStr = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
-        const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-        const typeStr = r.isIncome ? "收入" : "支出";
-        csv += `"${dateStr}","${timeStr}","${typeStr}","${r.category}","${r.title}",${r.amount.toFixed(2)}\n`;
-      });
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `我的小帳目_全記錄報表.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    // MARK: - 6. 日曆彈窗操作
+    function openDateModal() {
+      document.getElementById('calendarPickerInput').value = selectedDate.toISOString().split('T')[0];
+      document.getElementById('calendarModal').style.display = 'flex';
     }
-
-    // MARK: - 7. 主題切換與動態背景 Canvas
-    function switchTheme() {
-      currentThemeIdx = (currentThemeIdx + 1) % THEMES.length;
-      applyTheme();
+    function closeDateModal() {
+      document.getElementById('calendarModal').style.display = 'none';
     }
-
-    function applyTheme() {
-      const t = THEMES[currentThemeIdx];
-      document.documentElement.style.setProperty('--theme-primary', t.primary);
-      document.documentElement.style.setProperty('--title-color', t.titleColor);
-      document.documentElement.style.setProperty('--subtitle-color', t.subColor);
-    }
-
-    // Canvas 粒子系統
-    const canvas = document.getElementById('bgCanvas');
-    const ctx = canvas.getContext('2d');
-    let particles = [];
-
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      initParticles();
-    }
-    window.addEventListener('resize', resizeCanvas);
-
-    function initParticles() {
-      particles = [];
-      const count = 40;
-      for (let i = 0; i < count; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          size: Math.random() * 8 + 6,
-          speedY: Math.random() * 1.2 + 0.8,
-          speedX: Math.random() * 0.8 - 0.4,
-          angle: Math.random() * 360,
-          rotSpeed: (Math.random() - 0.5) * 1.5,
-          swayOffset: Math.random() * Math.PI * 2
+    function confirmDateSelect() {
+      const val = document.getElementById('calendarPickerInput').value;
+      if (val) {
+        selectedDate = new Date(val);
+        currentDimension = 'day';
+        document.querySelectorAll('.dim-btn').forEach((btn, i) => {
+          btn.classList.toggle('active', i === 0);
         });
+        render();
       }
+      closeDateModal();
     }
 
-    function animateParticles() {
-      const t = THEMES[currentThemeIdx];
-      
-      // 繪製背景漸層
-      const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      grad.addColorStop(0, t.bg1);
-      grad.addColorStop(1, t.bg2);
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // 繪製流動粒子
-      ctx.fillStyle = t.particleColor;
-      const now = Date.now() / 1000;
-
-      particles.forEach(p => {
-        p.y += p.speedY;
-        p.x += Math.sin(now + p.swayOffset) * 0.8 + p.speedX;
-        p.angle += p.rotSpeed;
-
-        if (p.y > canvas.height + 20) p.y = -20;
-        if (p.x > canvas.width + 20) p.x = -20;
-        if (p.x < -20) p.x = canvas.width + 20;
-
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate((p.angle * Math.PI) / 180);
-
-        if (t.isStar) {
-          // 繪製流沙小星辰
-          ctx.beginPath();
-          ctx.arc(0, 0, p.size * 0.4, 0, Math.PI * 2);
-          ctx.fill();
-        } else {
-          // 繪製櫻花花瓣形狀
-          ctx.beginPath();
-          ctx.moveTo(0, -p.size);
-          ctx.quadraticCurveTo(p.size * 0.8, -p.size * 0.2, p.size * 0.5, p.size * 0.8);
-          ctx.quadraticCurveTo(0, p.size, -p.size * 0.5, p.size * 0.8);
-          ctx.quadraticCurveTo(-p.size * 0.8, -p.size * 0.2, 0, -p.size);
-          ctx.fill();
-        }
-        ctx.restore();
-      });
-
-      requestAnimationFrame(animateParticles);
-    }
-
-    // MARK: - 8. 手動記帳彈窗
+    // MARK: - 7. 手動記帳彈窗操作
     function openManualModal() {
       document.getElementById('manualModal').style.display = 'flex';
       document.getElementById('manualInputText').value = '';
@@ -1008,11 +905,117 @@
       closeManualModal();
     }
 
-    // 初始化
-    applyTheme();
+    // MARK: - 8. Excel 匯出 (CSV with UTF-8 BOM)
+    function exportToExcel() {
+      let csv = "\uFEFF";
+      csv += "記錄日期,記錄時間,收支類型,消費分類,項目名稱,金額(HKD)\n";
+
+      records.forEach(r => {
+        const d = new Date(r.date);
+        const dateStr = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+        const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+        const typeStr = r.isIncome ? "收入" : "支出";
+        csv += `"${dateStr}","${timeStr}","${typeStr}","${r.category}","${r.title}",${r.amount.toFixed(2)}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "我的小帳目_全記錄報表.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // MARK: - 9. 主題切換與背景 Canvas 粒子
+    function switchTheme() {
+      currentThemeIdx = (currentThemeIdx + 1) % THEMES.length;
+      applyTheme();
+    }
+
+    function applyTheme() {
+      const t = THEMES[currentThemeIdx];
+      document.getElementById('appTitle').style.color = t.titleColor;
+      document.getElementById('dateDisplay').style.color = t.subColor;
+      document.querySelectorAll('.filter-chip.active').forEach(chip => {
+        chip.style.backgroundColor = t.primary;
+      });
+      document.getElementById('micBtn').style.backgroundColor = t.primary;
+      document.getElementById('btnSaveRecord').style.backgroundColor = t.primary;
+      document.getElementById('btnConfirmDate').style.backgroundColor = t.primary;
+    }
+
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth || 375;
+      canvas.height = window.innerHeight || 667;
+      particles = [];
+      for (let i = 0; i < 40; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          size: Math.random() * 8 + 6,
+          speedY: Math.random() * 1.2 + 0.6,
+          speedX: Math.random() * 0.8 - 0.4,
+          angle: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 1.5,
+          swayOffset: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
+    function animate() {
+      const t = THEMES[currentThemeIdx];
+      const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      grad.addColorStop(0, t.bg1);
+      grad.addColorStop(1, t.bg2);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = t.particleColor;
+      const now = Date.now() / 1000;
+
+      particles.forEach(p => {
+        p.y += p.speedY;
+        p.x += Math.sin(now + p.swayOffset) * 0.8 + p.speedX;
+        p.angle += p.rotSpeed;
+
+        if (p.y > canvas.height + 20) p.y = -20;
+        if (p.x > canvas.width + 20) p.x = -20;
+        if (p.x < -20) p.x = canvas.width + 20;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.angle * Math.PI) / 180);
+
+        if (t.isStar) {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size * 0.45, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(0, -p.size);
+          ctx.quadraticCurveTo(p.size * 0.8, -p.size * 0.2, p.size * 0.5, p.size * 0.8);
+          ctx.quadraticCurveTo(0, p.size, -p.size * 0.5, p.size * 0.8);
+          ctx.quadraticCurveTo(-p.size * 0.8, -p.size * 0.2, 0, -p.size);
+          ctx.fill();
+        }
+        ctx.restore();
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    // 啟動入口
+    window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
-    animateParticles();
+    applyTheme();
     render();
+    animate();
   </script>
 </body>
 </html>
