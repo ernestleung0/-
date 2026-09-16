@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <title>我的小帳目</title>
+  <!-- PWA 全螢幕與 iOS 原生配置 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="我的小帳目">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23e64980'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>🌸</text></svg>">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      color: #000000;
+      display: flex;
+      flex-direction: column;
+      background: #000;
+    }
+
+    /* 動態粒子 Canvas */
+    #bgCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* 主介面容器（避開 iPhone 動態島/瀏海與底部橫條） */
+    #appContainer {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px) 16px;
+    }
+
+    /* 頂部導航欄 */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-top: 6px;
+    }
+    .app-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--title-color, #000);
+      letter-spacing: 0.5px;
+    }
+    .date-display {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--subtitle-color, #222);
+      margin-top: 2px;
+    }
+    .top-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .icon-btn {
+      background: #ffffff;
+      border: none;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #000000;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      cursor: pointer;
+    }
+
+    /* 收支總覽卡片 */
+    .summary-card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border-radius: 18px;
+      padding: 14px 16px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      margin-bottom: 10px;
+    }
+    .summary-numbers {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .sum-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #000000;
+      margin-bottom: 2px;
+    }
+    .expense-val {
+      font-size: 26px;
+      font-weight: 900;
+      color: #d6336c;
+    }
+    .income-val {
+      font-size: 22px;
+      font-weight: 900;
+      color: #2b8a3e;
+      text-align: right;
+    }
+
+    /* 維度切換與翻查 */
+    .controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(0,0,0,0.1);
+      padding-top: 10px;
+    }
+    .dim-picker {
+      display: flex;
+      background: #e9ecef;
+      border-radius: 10px;
+      padding: 2px;
+    }
+    .dim-btn {
+      border: none;
+      background: transparent;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #000;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .dim-btn.active {
+      background: #ffffff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+    .nav-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .sub-btn {
+      background: #ffffff;
+      border: 1px solid #ced4da;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #000000;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* 類別標籤列 */
+    .filter-scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 0 10px 0;
+      scrollbar-width: none;
+    }
+    .filter-scroll::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      flex-shrink: 0;
+      background: #ffffff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #000000;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      cursor: pointer;
+    }
+    .filter-chip.active {
+      background: var(--theme-primary, #e64980);
+      color: #ffffff;
+    }
+
+    /* 記錄流水列表 */
+    .record-list {
+      flex: 1;
+      overflow-y: auto;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-bottom: 80px;
+    }
+    .record-card {
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .rec-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .rec-icon {
+      font-size: 22px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #f1f3f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .rec-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .rec-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #000000;
+    }
+    .rec-time {
+      font-size: 12px;
+      font-weight: 600;
+      color: #495057;
+      margin-top: 2px;
+    }
+    .rec-amount {
+      font-size: 17px;
+      font-weight: 900;
+      color: #000000;
+    }
+
+    /* 底部懸浮按鈕 */
+    .bottom-bar {
+      position: absolute;
+      bottom: env(safe-area-inset-bottom, 20px);
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 36px;
+      pointer-events: none;
+    }
+    .bottom-bar button {
+      pointer-events: auto;
+    }
+    .mic-btn {
+      width: 66px;
+      height: 66px;
+      border-radius: 50%;
+      border: none;
+      background: var(--theme-primary, #e64980);
+      color: #ffffff;
+      font-size: 28px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s ease;
+    }
+    .mic-btn:active {
+      transform: scale(0.92);
+    }
+    .mic-btn.recording {
+      background: #fa5252;
+      animation: pulse 1.2s infinite;
+    }
+    .pen-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: #ffffff;
+      color: #000000;
+      font-size: 20px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250, 82, 82, 0.7); }
+      70% { transform: scale(1.08); box-shadow: 0 0 0 16px rgba(250, 82, 82, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250, 82, 82, 0); }
+    }
+
+    /* 語音狀態文字條 */
+    .speech-tip {
+      position: absolute;
+      bottom: 86px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.95);
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #000000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      white-space: nowrap;
+      display: none;
+    }
+
+    /* 隱藏原生日期輸入框 */
+    #hiddenDatePicker {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* 彈出視窗（手動輸入） */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: none;
+      justify-content: center;
+      align-items: flex-end;
+    }
+    .modal-sheet {
+      width: 100%;
+      max-width: 500px;
+      background: #ffffff;
+      border-radius: 20px 20px 0 0;
+      padding: 20px 18px env(safe-area-inset-bottom, 24px) 18px;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .modal-header h3 {
+      font-size: 18px;
+      font-weight: 800;
+      color: #000;
+    }
+    .input-group {
+      margin-bottom: 12px;
+    }
+    .input-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #000;
+      margin-bottom: 4px;
+    }
+    .input-group input, .input-group select {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ced4da;
+      border-radius: 10px;
+      color: #000;
+      background: #f8f9fa;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .modal-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .btn-cancel { background: #e9ecef; color: #000; }
+    .btn-save { background: var(--theme-primary, #e64980); color: #fff; }
+  </style>
+</head>
+<body>
+
+  <!-- 背景動畫 Canvas -->
+  <canvas id="bgCanvas"></canvas>
+
+  <!-- 日期選擇隱藏 input -->
+  <input type="date" id="hiddenDatePicker">
+
+  <div id="appContainer">
+    <!-- 頂部欄 -->
+    <div class="top-bar">
+      <div>
+        <div class="app-title">我的小帳目</div>
+        <div class="date-display" id="dateDisplay">載入中...</div>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" onclick="exportToExcel()">📊 匯出Excel</button>
+        <button class="icon-btn" onclick="switchTheme()">🎨 主題</button>
+      </div>
+    </div>
+
+    <!-- 收支統計卡片 -->
+    <div class="summary-card">
+      <div class="summary-numbers">
+        <div>
+          <div class="sum-label">總支出</div>
+          <div class="expense-val" id="totalExpenseDisplay">$0.00</div>
+        </div>
+        <div>
+          <div class="sum-label" style="text-align: right;">總收入</div>
+          <div class="income-val" id="totalIncomeDisplay">$0.00</div>
+        </div>
+      </div>
+      <div class="controls-row">
+        <div class="dim-picker">
+          <button class="dim-btn active" onclick="setDimension('day')">日</button>
+          <button class="dim-btn" onclick="setDimension('month')">月</button>
+          <button class="dim-btn" onclick="setDimension('year')">年</button>
+        </div>
+        <div class="nav-actions">
+          <button class="sub-btn" onclick="shiftDate(-1)">◀ 前一天</button>
+          <button class="sub-btn" onclick="openDatePicker()">📅 挑選日期</button>
+          <button class="sub-btn" onclick="shiftDate(1)">後一天 ▶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 類別標籤滑動列 -->
+    <div class="filter-scroll" id="categoryChips">
+      <button class="filter-chip active" onclick="filterCategory(null)">全部</button>
+      <button class="filter-chip" onclick="filterCategory('餐飲美食')">餐飲美食</button>
+      <button class="filter-chip" onclick="filterCategory('交通出行')">交通出行</button>
+      <button class="filter-chip" onclick="filterCategory('購物消費')">購物消費</button>
+      <button class="filter-chip" onclick="filterCategory('休閒娛樂')">休閒娛樂</button>
+      <button class="filter-chip" onclick="filterCategory('居家生活')">居家生活</button>
+      <button class="filter-chip" onclick="filterCategory('醫療健康')">醫療健康</button>
+      <button class="filter-chip" onclick="filterCategory('薪資收入')">薪資收入</button>
+      <button class="filter-chip" onclick="filterCategory('其他雜項')">其他雜項</button>
+    </div>
+
+    <!-- 記帳流水清單 -->
+    <div class="record-list" id="recordList"></div>
+
+    <!-- 語音提示條 -->
+    <div class="speech-tip" id="speechTip">正在聆聽... (如：行路5蚊，搭車70蚊)</div>
+
+    <!-- 底部操作按鈕 -->
+    <div class="bottom-bar">
+      <button class="pen-btn" onclick="openManualModal()">✏️</button>
+      <button class="mic-btn" id="micBtn" onclick="toggleSpeech()">🎙️</button>
+    </div>
+  </div>
+
+  <!-- 手動輸入彈窗 -->
+  <div class="modal-overlay" id="manualModal">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3>新增記帳記錄</h3>
+        <span style="font-size: 22px; cursor: pointer;" onclick="closeManualModal()">✕</span>
+      </div>
+      <div class="input-group">
+        <label>智能輸入（自動識別金額與類別）</label>
+        <input type="text" id="manualInputText" placeholder="如：食晏 50 蚊 / 搭車 20" oninput="autoParseInput(this.value)">
+      </div>
+      <div class="input-group">
+        <label>項目名稱</label>
+        <input type="text" id="manualTitle" placeholder="項目名稱">
+      </div>
+      <div class="input-group">
+        <label>金額 (HKD)</label>
+        <input type="number" step="0.01" id="manualAmount" placeholder="0.00">
+      </div>
+      <div class="input-group">
+        <label>分類</label>
+        <select id="manualCategory">
+          <option value="餐飲美食">餐飲美食</option>
+          <option value="交通出行">交通出行</option>
+          <option value="購物消費">購物消費</option>
+          <option value="休閒娛樂">休閒娛樂</option>
+          <option value="居家生活">居家生活</option>
+          <option value="醫療健康">醫療健康</option>
+          <option value="薪資收入">薪資收入</option>
+          <option value="其他雜項">其他雜項</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn btn-cancel" onclick="closeManualModal()">取消</button>
+        <button class="modal-btn btn-save" onclick="saveManualRecord()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // MARK: - 1. 主題配色與流動背景配置
+    const THEMES = [
+      {
+        name: "流沙星辰",
+        bg1: "#0a0e1a",
+        bg2: "#20183b",
+        primary: "#d4af37",
+        titleColor: "#ffffff",
+        subColor: "rgba(255,255,255,0.85)",
+        particleColor: "rgba(255, 230, 150, 0.85)",
+        isStar: true
+      },
+      {
+        name: "櫻花紛飛",
+        bg1: "#fff0f5",
+        bg2: "#ffd1dc",
+        primary: "#e64980",
+        titleColor: "#000000",
+        subColor: "#222222",
+        particleColor: "rgba(255, 183, 197, 0.85)",
+        isStar: false
+      },
+      {
+        name: "京都抹茶",
+        bg1: "#f4f9f4",
+        bg2: "#c8e6c9",
+        primary: "#388e3c",
+        titleColor: "#000000",
+        subColor: "#222222",
+        particleColor: "rgba(129, 199, 132, 0.8)",
+        isStar: false
+      },
+      {
+        name: "淺草夜櫻",
+        bg1: "#1a1b2f",
+        bg2: "#283e58",
+        primary: "#e27d8c",
+        titleColor: "#ffffff",
+        subColor: "rgba(255,255,255,0.85)",
+        particleColor: "rgba(248, 187, 208, 0.85)",
+        isStar: false
+      },
+      {
+        name: "富士初雪",
+        bg1: "#f0f8ff",
+        bg2: "#d0e8ff",
+        primary: "#1971c2",
+        titleColor: "#000000",
+        subColor: "#222222",
+        particleColor: "rgba(255, 255, 255, 0.9)",
+        isStar: false
+      }
+    ];
+
+    let currentThemeIdx = 0;
+
+    // MARK: - 2. 狀態管理
+    let records = JSON.parse(localStorage.getItem('my_ledger_records') || '[]');
+    if (records.length === 0) {
+      records = [
+        { id: 1, title: "星巴克咖啡", amount: 45, category: "餐飲美食", isIncome: false, date: new Date().toISOString() },
+        { id: 2, title: "港鐵車費", amount: 15.2, category: "交通出行", isIncome: false, date: new Date().toISOString() },
+        { id: 3, title: "設計專案入帳", amount: 6500, category: "薪資收入", isIncome: true, date: new Date().toISOString() }
+      ];
+      saveData();
+    }
+
+    let currentDimension = 'day'; // 'day' | 'month' | 'year'
+    let selectedDate = new Date();
+    let currentCategoryFilter = null;
+
+    // MARK: - 3. 智慧多項目解析器
+    const CATEGORY_MAP = {
+      "餐飲美食": ["飯", "麵", "食", "咖啡", "外賣", "早餐", "午餐", "晚餐", "茶餐廳", "凍飲", "壽司", "starbucks", "coffee", "food", "drink", "晏", "宴"],
+      "交通出行": ["搭車", "搭", "行路", "行", "走路", "步行", "車", "車費", "地鐵", "巴士", "的士", "打車", "uber", "八達通", "mtr", "bus", "taxi", "油費", "泊車", "小巴", "渡輪", "電車", "輕鐵", "過海", "walk", "train"],
+      "購物消費": ["買", "淘寶", "超市", "百佳", "惠康", "衫", "褲", "鞋", "購物", "shopping", "clothes", "書"],
+      "休閒娛樂": ["戲院", "電影", "唱k", "演唱會", "旅行", "酒店", "game", "steam", "movie"],
+      "居家生活": ["租金", "水費", "電費", "煤氣", "寬頻", "電話費", "rent", "bill"],
+      "醫療健康": ["醫生", "感冒", "睇病", "藥", "醫院", "診所", "doctor", "clinic"],
+      "薪資收入": ["出糧", "收錢", "轉入", "薪水", "人工", "獎金", "收入", "salary", "bonus"]
+    };
+
+    const CATEGORY_ICONS = {
+      "餐飲美食": "🍴",
+      "交通出行": "🚇",
+      "購物消費": "🛍️",
+      "休閒娛樂": "🎮",
+      "居家生活": "🏠",
+      "醫療健康": "💊",
+      "薪資收入": "💰",
+      "其他雜項": "📦"
+    };
+
+    function parseMultiItems(text) {
+      // 替換常見連接詞
+      let normalized = text.replace(/(同埋|加埋|跟住|然後|仲有|，|、|。| and | then |\n|;)/g, ",");
+      let segments = normalized.split(",").map(s => s.trim()).filter(s => s.length > 0);
+
+      // 無標點但包含多個金額數字的情況
+      if (segments.length === 1) {
+        const matches = [...text.matchAll(/([0-9]+(\.[0-9]{1,2})?\s*(蚊|元|塊|dollars|hkd|usd)?)/gi)];
+        if (matches.length > 1) {
+          let subs = [];
+          let lastIdx = 0;
+          for (let m of matches) {
+            let end = m.index + m[0].length;
+            subs.push(text.substring(lastIdx, end));
+            lastIdx = end;
+          }
+          if (lastIdx < text.length) subs[subs.length - 1] += text.substring(lastIdx);
+          segments = subs;
+        }
+      }
+
+      let parsedList = [];
+      for (let seg of segments) {
+        let numMatch = seg.match(/([0-9]+(\.[0-9]{1,2})?)/);
+        if (numMatch) {
+          let amount = parseFloat(numMatch[0]);
+          let isIncome = CATEGORY_MAP["薪資收入"].some(kw => seg.toLowerCase().includes(kw));
+
+          let category = "其他雜項";
+          if (isIncome) {
+            category = "薪資收入";
+          } else {
+            for (let cat in CATEGORY_MAP) {
+              if (cat === "薪資收入") continue;
+              if (CATEGORY_MAP[cat].some(kw => seg.toLowerCase().includes(kw))) {
+                category = cat;
+                break;
+              }
+            }
+          }
+
+          // 清理標題文字
+          let title = seg.replace(/(\$?\s*[0-9]+(\.[0-9]{1,2})?\s*(蚊|元|塊|dollars|hkd|usd)?\$?)/gi, "")
+                         .replace(/(我今日|今日|用咗|用左|花了|花費|用|\$)/g, "")
+                         .trim();
+          if (!title) title = category;
+
+          parsedList.push({
+            id: Date.now() + Math.random(),
+            title: title,
+            amount: amount,
+            category: category,
+            isIncome: isIncome,
+            date: new Date().toISOString()
+          });
+        }
+      }
+      return parsedList;
+    }
+
+    // MARK: - 4. 語音識別（支援廣東話、普通話、英文感知）
+    let recognition = null;
+    let isRecording = false;
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'zh-HK'; // 香港雙語模型，原生感知廣東話、普通話與混合英文
+
+      recognition.onstart = () => {
+        isRecording = true;
+        document.getElementById('micBtn').classList.add('recording');
+        document.getElementById('speechTip').style.display = 'block';
+        document.getElementById('speechTip').innerText = '正在聆聽... (如：行路5蚊，搭車70蚊)';
+      };
+
+      recognition.onresult = (event) => {
+        let currentTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          currentTranscript += event.results[i][0].transcript;
+        }
+        document.getElementById('speechTip').innerText = currentTranscript || '聆聽中...';
+      };
+
+      recognition.onend = () => {
+        isRecording = false;
+        document.getElementById('micBtn').classList.remove('recording');
+        let text = document.getElementById('speechTip').innerText;
+        document.getElementById('speechTip').style.display = 'none';
+
+        if (text && !text.startsWith('正在聆聽') && !text.startsWith('聆聽中')) {
+          let newItems = parseMultiItems(text);
+          if (newItems.length > 0) {
+            records.unshift(...newItems);
+            saveData();
+            render();
+          }
+        }
+      };
+
+      recognition.onerror = () => {
+        isRecording = false;
+        document.getElementById('micBtn').classList.remove('recording');
+        document.getElementById('speechTip').style.display = 'none';
+      };
+    }
+
+    function toggleSpeech() {
+      if (!recognition) {
+        alert("此瀏覽器不支援語音辨識，請在 iPhone Safari 中開啟。");
+        return;
+      }
+      if (isRecording) {
+        recognition.stop();
+      } else {
+        recognition.start();
+      }
+    }
+
+    // MARK: - 5. 介面渲染與操作
+    function saveData() {
+      localStorage.setItem('my_ledger_records', JSON.stringify(records));
+    }
+
+    function formatDateDisplay() {
+      const y = selectedDate.getFullYear();
+      const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const d = String(selectedDate.getDate()).padStart(2, '0');
+      const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+      const week = days[selectedDate.getDay()];
+
+      if (currentDimension === 'day') return `${y}年${m}月${d}日 ${week}`;
+      if (currentDimension === 'month') return `${y}年${m}月`;
+      return `${y}年`;
+    }
+
+    function shiftDate(delta) {
+      if (currentDimension === 'day') {
+        selectedDate.setDate(selectedDate.getDate() + delta);
+      } else if (currentDimension === 'month') {
+        selectedDate.setMonth(selectedDate.getMonth() + delta);
+      } else if (currentDimension === 'year') {
+        selectedDate.setFullYear(selectedDate.getFullYear() + delta);
+      }
+      render();
+    }
+
+    function openDatePicker() {
+      const picker = document.getElementById('hiddenDatePicker');
+      picker.value = selectedDate.toISOString().split('T')[0];
+      picker.onchange = () => {
+        if (picker.value) {
+          selectedDate = new Date(picker.value);
+          currentDimension = 'day';
+          updateDimensionButtons();
+          render();
+        }
+      };
+      picker.showPicker ? picker.showPicker() : picker.click();
+    }
+
+    function setDimension(dim) {
+      currentDimension = dim;
+      updateDimensionButtons();
+      render();
+    }
+
+    function updateDimensionButtons() {
+      document.querySelectorAll('.dim-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', ['day', 'month', 'year'][i] === currentDimension);
+      });
+    }
+
+    function filterCategory(cat) {
+      currentCategoryFilter = cat;
+      document.querySelectorAll('.filter-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.innerText === (cat || '全部'));
+      });
+      render();
+    }
+
+    function render() {
+      document.getElementById('dateDisplay').innerText = formatDateDisplay();
+
+      // 篩選當前維度與分類
+      const selY = selectedDate.getFullYear();
+      const selM = selectedDate.getMonth();
+      const selD = selectedDate.getDate();
+
+      const filtered = records.filter(r => {
+        const d = new Date(r.date);
+        let timeMatch = false;
+        if (currentDimension === 'day') {
+          timeMatch = (d.getFullYear() === selY && d.getMonth() === selM && d.getDate() === selD);
+        } else if (currentDimension === 'month') {
+          timeMatch = (d.getFullYear() === selY && d.getMonth() === selM);
+        } else {
+          timeMatch = (d.getFullYear() === selY);
+        }
+        let catMatch = (!currentCategoryFilter || r.category === currentCategoryFilter);
+        return timeMatch && catMatch;
+      });
+
+      // 計算收支總額
+      let totalExpense = 0;
+      let totalIncome = 0;
+      filtered.forEach(r => {
+        if (r.isIncome) totalIncome += r.amount;
+        else totalExpense += r.amount;
+      });
+
+      document.getElementById('totalExpenseDisplay').innerText = `$${totalExpense.toFixed(2)}`;
+      document.getElementById('totalIncomeDisplay').innerText = `$${totalIncome.toFixed(2)}`;
+
+      // 渲染列表
+      const listContainer = document.getElementById('recordList');
+      listContainer.innerHTML = '';
+
+      if (filtered.length === 0) {
+        listContainer.innerHTML = `
+          <div style="text-align: center; margin-top: 50px; font-weight: 700; color: #000;">
+            <div style="font-size: 36px; margin-bottom: 8px;">📭</div>
+            暫無此時段的記帳記錄
+          </div>`;
+        return;
+      }
+
+      filtered.forEach(r => {
+        const itemDate = new Date(r.date);
+        const timeStr = `${itemDate.getHours().toString().padStart(2, '0')}:${itemDate.getMinutes().toString().padStart(2, '0')}`;
+        const icon = CATEGORY_ICONS[r.category] || "📦";
+
+        const card = document.createElement('div');
+        card.className = 'record-card';
+        card.innerHTML = `
+          <div class="rec-left">
+            <div class="rec-icon">${icon}</div>
+            <div class="rec-info">
+              <div class="rec-title">${r.title}</div>
+              <div class="rec-time">${r.category} · ${timeStr}</div>
+            </div>
+          </div>
+          <div class="rec-amount" style="color: ${r.isIncome ? '#2b8a3e' : '#000000'};">
+            ${r.isIncome ? '+' : '-'}$${r.amount.toFixed(2)}
+          </div>
+        `;
+        listContainer.appendChild(card);
+      });
+    }
+
+    // MARK: - 6. Excel (CSV) 導出
+    function exportToExcel() {
+      let csv = "\uFEFF"; // UTF-8 BOM，防止 Excel 打開中文時出現亂碼
+      csv += "記錄日期,記錄時間,收支類型,消費分類,項目名稱,金額(HKD)\n";
+
+      records.forEach(r => {
+        const d = new Date(r.date);
+        const dateStr = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+        const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+        const typeStr = r.isIncome ? "收入" : "支出";
+        csv += `"${dateStr}","${timeStr}","${typeStr}","${r.category}","${r.title}",${r.amount.toFixed(2)}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `我的小帳目_全記錄報表.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // MARK: - 7. 主題切換與動態背景 Canvas
+    function switchTheme() {
+      currentThemeIdx = (currentThemeIdx + 1) % THEMES.length;
+      applyTheme();
+    }
+
+    function applyTheme() {
+      const t = THEMES[currentThemeIdx];
+      document.documentElement.style.setProperty('--theme-primary', t.primary);
+      document.documentElement.style.setProperty('--title-color', t.titleColor);
+      document.documentElement.style.setProperty('--subtitle-color', t.subColor);
+    }
+
+    // Canvas 粒子系統
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      initParticles();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function initParticles() {
+      particles = [];
+      const count = 40;
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          size: Math.random() * 8 + 6,
+          speedY: Math.random() * 1.2 + 0.8,
+          speedX: Math.random() * 0.8 - 0.4,
+          angle: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 1.5,
+          swayOffset: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
+    function animateParticles() {
+      const t = THEMES[currentThemeIdx];
+      
+      // 繪製背景漸層
+      const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      grad.addColorStop(0, t.bg1);
+      grad.addColorStop(1, t.bg2);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 繪製流動粒子
+      ctx.fillStyle = t.particleColor;
+      const now = Date.now() / 1000;
+
+      particles.forEach(p => {
+        p.y += p.speedY;
+        p.x += Math.sin(now + p.swayOffset) * 0.8 + p.speedX;
+        p.angle += p.rotSpeed;
+
+        if (p.y > canvas.height + 20) p.y = -20;
+        if (p.x > canvas.width + 20) p.x = -20;
+        if (p.x < -20) p.x = canvas.width + 20;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.angle * Math.PI) / 180);
+
+        if (t.isStar) {
+          // 繪製流沙小星辰
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          // 繪製櫻花花瓣形狀
+          ctx.beginPath();
+          ctx.moveTo(0, -p.size);
+          ctx.quadraticCurveTo(p.size * 0.8, -p.size * 0.2, p.size * 0.5, p.size * 0.8);
+          ctx.quadraticCurveTo(0, p.size, -p.size * 0.5, p.size * 0.8);
+          ctx.quadraticCurveTo(-p.size * 0.8, -p.size * 0.2, 0, -p.size);
+          ctx.fill();
+        }
+        ctx.restore();
+      });
+
+      requestAnimationFrame(animateParticles);
+    }
+
+    // MARK: - 8. 手動記帳彈窗
+    function openManualModal() {
+      document.getElementById('manualModal').style.display = 'flex';
+      document.getElementById('manualInputText').value = '';
+      document.getElementById('manualTitle').value = '';
+      document.getElementById('manualAmount').value = '';
+    }
+    function closeManualModal() {
+      document.getElementById('manualModal').style.display = 'none';
+    }
+    function autoParseInput(val) {
+      let items = parseMultiItems(val);
+      if (items.length > 0) {
+        document.getElementById('manualTitle').value = items[0].title;
+        document.getElementById('manualAmount').value = items[0].amount;
+        document.getElementById('manualCategory').value = items[0].category;
+      }
+    }
+    function saveManualRecord() {
+      let title = document.getElementById('manualTitle').value.trim();
+      let amount = parseFloat(document.getElementById('manualAmount').value);
+      let cat = document.getElementById('manualCategory').value;
+
+      if (isNaN(amount) || amount <= 0) {
+        alert("請輸入有效金額！");
+        return;
+      }
+      records.unshift({
+        id: Date.now(),
+        title: title || cat,
+        amount: amount,
+        category: cat,
+        isIncome: cat === '薪資收入',
+        date: new Date().toISOString()
+      });
+      saveData();
+      render();
+      closeManualModal();
+    }
+
+    // 初始化
+    applyTheme();
+    resizeCanvas();
+    animateParticles();
+    render();
+  </script>
+</body>
+</html>
