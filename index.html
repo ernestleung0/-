@@ -31,7 +31,7 @@
       user-select: auto;
     }
 
-    /* 背景動態粒子 Canvas */
+    /* 背景粒子 Canvas */
     #bgCanvas {
       position: absolute;
       top: 0;
@@ -51,10 +51,9 @@
       display: flex;
       flex-direction: column;
       padding: env(safe-area-inset-top, 24px) 16px env(safe-area-inset-bottom, 20px) 16px;
-      pointer-events: auto;
     }
 
-    /* 頂部導航欄 */
+    /* 頂部欄 */
     .top-bar {
       display: flex;
       justify-content: space-between;
@@ -64,37 +63,46 @@
     }
     .app-title {
       font-size: 24px;
-      font-weight: 800;
+      font-weight: 900;
       color: #ffffff;
-      transition: color 0.3s;
     }
     .date-display {
       font-size: 13px;
       font-weight: 700;
       color: rgba(255, 255, 255, 0.85);
       margin-top: 2px;
-      transition: color 0.3s;
     }
     .top-actions {
       display: flex;
       gap: 8px;
     }
+
+    /* 立體浮凸按鈕特效 (3D Button Effect) */
+    .icon-btn, .sub-btn, .filter-chip, .pen-btn, .modal-btn, .cal-day-btn {
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.08s ease;
+    }
+
     .icon-btn {
       background: #ffffff;
-      border: none;
+      border: 1px solid #ced4da;
       border-radius: 20px;
       padding: 7px 12px;
       font-size: 13px;
       font-weight: 800;
       color: #000000;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      active: scale(0.96);
+      box-shadow: 0 4px 0 #b0b5b9, 0 5px 8px rgba(0,0,0,0.15);
+    }
+    .icon-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #b0b5b9, 0 2px 4px rgba(0,0,0,0.15);
+      filter: brightness(0.92);
     }
 
-    /* 收支統計卡片 */
+    /* 收支總覽卡片 */
     .summary-card {
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.94);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-radius: 18px;
@@ -124,7 +132,6 @@
       text-align: right;
     }
 
-    /* 維度與日期導航 */
     .controls-row {
       display: flex;
       justify-content: space-between;
@@ -147,11 +154,16 @@
       color: #000;
       border-radius: 8px;
       cursor: pointer;
+      transition: all 0.08s ease;
     }
     .dim-btn.active {
       background: #ffffff;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+      box-shadow: 0 2px 0 #ced4da, 0 3px 6px rgba(0,0,0,0.12);
     }
+    .dim-btn:active {
+      transform: translateY(2px);
+    }
+
     .nav-actions {
       display: flex;
       gap: 6px;
@@ -164,7 +176,12 @@
       font-weight: 800;
       color: #000000;
       border-radius: 8px;
-      cursor: pointer;
+      box-shadow: 0 3px 0 #b0b5b9, 0 4px 6px rgba(0,0,0,0.12);
+    }
+    .sub-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #b0b5b9;
+      filter: brightness(0.92);
     }
 
     /* 類別標籤列 */
@@ -179,21 +196,26 @@
     .filter-chip {
       flex-shrink: 0;
       background: #ffffff;
-      border: none;
+      border: 1px solid #ced4da;
       padding: 7px 14px;
       border-radius: 14px;
       font-size: 13px;
       font-weight: 800;
       color: #000000;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      cursor: pointer;
+      box-shadow: 0 3px 0 #ced4da;
     }
     .filter-chip.active {
       background: #d4af37;
       color: #ffffff;
+      border-color: #b89628;
+      box-shadow: 0 3px 0 #94771b;
+    }
+    .filter-chip:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #ced4da;
     }
 
-    /* 記錄流水列表 */
+    /* 記錄流水列表（支援滑動刪除） */
     .record-list {
       flex: 1;
       overflow-y: auto;
@@ -201,16 +223,48 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      padding-bottom: 85px;
+      padding-bottom: 90px;
     }
+
+    .record-wrapper {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fa5252;
+    }
+
+    /* 背景紅色刪除按鈕 */
+    .delete-swipe-btn {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 85px;
+      background: #e03131;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    /* 卡片主體（可橫向滑動） */
     .record-card {
-      background: rgba(255, 255, 255, 0.94);
+      position: relative;
+      background: rgba(255, 255, 255, 0.96);
       border-radius: 14px;
       padding: 12px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      z-index: 2;
+      transform: translateX(0);
+      transition: transform 0.2s ease-out;
+      touch-action: pan-y;
     }
     .rec-left {
       display: flex;
@@ -264,33 +318,46 @@
       width: 68px;
       height: 68px;
       border-radius: 50%;
-      border: none;
+      border: 2px solid #b89628;
       background: #d4af37;
       color: #ffffff;
       font-size: 28px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+      box-shadow: 0 6px 0 #94771b, 0 8px 18px rgba(0,0,0,0.35);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.08s ease;
+    }
+    .mic-btn:active {
+      transform: translateY(4px) scale(0.96);
+      box-shadow: 0 2px 0 #94771b, 0 4px 10px rgba(0,0,0,0.25);
     }
     .mic-btn.recording {
       background: #fa5252;
+      border-color: #c92a2a;
+      box-shadow: 0 6px 0 #a61e1e;
       animation: pulse 1.2s infinite;
     }
     .pen-btn {
       width: 50px;
       height: 50px;
       border-radius: 50%;
-      border: none;
+      border: 1px solid #ced4da;
       background: #ffffff;
       color: #000000;
       font-size: 22px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 0 #b0b5b9, 0 6px 12px rgba(0,0,0,0.2);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.08s ease;
+    }
+    .pen-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #b0b5b9;
+      filter: brightness(0.92);
     }
     @keyframes pulse {
       0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250, 82, 82, 0.7); }
@@ -382,13 +449,83 @@
       font-weight: 800;
       cursor: pointer;
     }
-    .btn-cancel { background: #e9ecef; color: #000; }
-    .btn-save { background: #d4af37; color: #fff; }
+    .btn-cancel {
+      background: #e9ecef;
+      color: #000;
+      box-shadow: 0 3px 0 #ced4da;
+    }
+    .btn-cancel:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #ced4da;
+    }
+    .btn-save {
+      background: #d4af37;
+      color: #fff;
+      box-shadow: 0 3px 0 #94771b;
+    }
+    .btn-save:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #94771b;
+    }
+
+    /* 專屬圖形大日曆樣式 */
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .cal-title {
+      font-size: 17px;
+      font-weight: 900;
+      color: #000;
+    }
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      text-align: center;
+    }
+    .cal-weekday {
+      font-size: 12px;
+      font-weight: 800;
+      color: #868e96;
+      padding-bottom: 4px;
+    }
+    .cal-day-btn {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 10px;
+      border: 1px solid #e9ecef;
+      background: #f8f9fa;
+      font-size: 14px;
+      font-weight: 800;
+      color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 0 #dee2e6;
+    }
+    .cal-day-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 0 0;
+    }
+    .cal-day-btn.selected {
+      background: #d4af37;
+      color: #ffffff;
+      border-color: #94771b;
+      box-shadow: 0 2px 0 #94771b;
+    }
+    .cal-day-btn.empty {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
 
-  <!-- 獨立背景動畫 Canvas -->
   <canvas id="bgCanvas"></canvas>
 
   <div id="appContainer">
@@ -430,7 +567,7 @@
       </div>
     </div>
 
-    <!-- 類別篩選滑動列 -->
+    <!-- 類別滑動標籤 -->
     <div class="filter-scroll" id="categoryChips">
       <button class="filter-chip active" onclick="filterCategory(null)">全部</button>
       <button class="filter-chip" onclick="filterCategory('餐飲美食')">餐飲美食</button>
@@ -443,10 +580,10 @@
       <button class="filter-chip" onclick="filterCategory('其他雜項')">其他雜項</button>
     </div>
 
-    <!-- 記帳流水清單 -->
+    <!-- 記錄流水列表（支援左滑刪除） -->
     <div class="record-list" id="recordList"></div>
 
-    <!-- 語音識別提示條 -->
+    <!-- 語音提示條 -->
     <div class="speech-tip" id="speechTip">正在聆聽... (如：行路5蚊，搭車70蚊)</div>
 
     <!-- 底部操作按鈕 -->
@@ -495,32 +632,35 @@
     </div>
   </div>
 
-  <!-- 日曆挑選彈窗（原生可靠視圖） -->
+  <!-- 真正視覺化大日曆彈窗 -->
   <div class="modal-overlay" id="calendarModal">
     <div class="modal-card">
       <div class="modal-header">
         <h3>選擇翻查日期</h3>
         <span style="font-size: 22px; cursor: pointer; font-weight: bold;" onclick="closeDateModal()">✕</span>
       </div>
-      <div class="input-group">
-        <label>選擇任何一天</label>
-        <input type="date" id="calendarPickerInput">
+      <div class="calendar-header">
+        <button class="sub-btn" onclick="shiftCalendarMonth(-1)">◀ 上個月</button>
+        <div class="cal-title" id="calMonthTitle">2026年 9月</div>
+        <button class="sub-btn" onclick="shiftCalendarMonth(1)">下個月 ▶</button>
       </div>
-      <div class="modal-actions">
-        <button class="modal-btn btn-cancel" onclick="closeDateModal()">取消</button>
-        <button class="modal-btn btn-save" id="btnConfirmDate" onclick="confirmDateSelect()">確認翻查</button>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="modal-actions" style="margin-top: 18px;">
+        <button class="modal-btn btn-cancel" onclick="jumpToday()">返回今日</button>
+        <button class="modal-btn btn-cancel" onclick="closeDateModal()">關閉</button>
       </div>
     </div>
   </div>
 
   <script>
-    // MARK: - 1. 主題配色
+    // MARK: - 1. 主題配置
     const THEMES = [
       {
         name: "流沙星辰",
         bg1: "#0a0e1a",
         bg2: "#1d1633",
         primary: "#d4af37",
+        btnShadow: "#94771b",
         titleColor: "#ffffff",
         subColor: "rgba(255,255,255,0.85)",
         particleColor: "rgba(255, 230, 150, 0.85)",
@@ -531,6 +671,7 @@
         bg1: "#fff0f5",
         bg2: "#ffd1dc",
         primary: "#e64980",
+        btnShadow: "#b82a5a",
         titleColor: "#000000",
         subColor: "#222222",
         particleColor: "rgba(255, 183, 197, 0.85)",
@@ -541,6 +682,7 @@
         bg1: "#f4f9f4",
         bg2: "#c8e6c9",
         primary: "#388e3c",
+        btnShadow: "#236326",
         titleColor: "#000000",
         subColor: "#222222",
         particleColor: "rgba(129, 199, 132, 0.8)",
@@ -551,6 +693,7 @@
         bg1: "#1a1b2f",
         bg2: "#283e58",
         primary: "#e27d8c",
+        btnShadow: "#a84e5b",
         titleColor: "#ffffff",
         subColor: "rgba(255,255,255,0.85)",
         particleColor: "rgba(248, 187, 208, 0.85)",
@@ -560,7 +703,7 @@
 
     let currentThemeIdx = 0;
 
-    // MARK: - 2. 狀態管理與本地儲存
+    // MARK: - 2. 狀態管理
     let records = [];
     try {
       const stored = localStorage.getItem('my_ledger_records');
@@ -578,6 +721,7 @@
 
     let currentDimension = 'day';
     let selectedDate = new Date();
+    let calBrowsingDate = new Date();
     let currentCategoryFilter = null;
 
     function saveData() {
@@ -586,7 +730,7 @@
       } catch(e) {}
     }
 
-    // MARK: - 3. 智慧多項目解析
+    // MARK: - 3. 智慧多項目解析器
     const CATEGORY_MAP = {
       "餐飲美食": ["飯", "麵", "食", "咖啡", "外賣", "早餐", "午餐", "晚餐", "茶餐廳", "凍飲", "壽司", "starbucks", "coffee", "food", "drink", "晏", "宴"],
       "交通出行": ["搭車", "搭", "行路", "行", "走路", "步行", "車", "車費", "地鐵", "巴士", "的士", "打車", "uber", "八達通", "mtr", "bus", "taxi", "油費", "泊車", "小巴", "渡輪", "電車", "輕鐵", "過海", "walk", "train"],
@@ -665,7 +809,7 @@
       return parsedList;
     }
 
-    // MARK: - 4. 語音辨識（延遲初始化，點擊才載入，絕不阻斷）
+    // MARK: - 4. 語音辨識（點擊安全啟動）
     let speechRecognitionInstance = null;
     let isSpeechRecording = false;
 
@@ -728,7 +872,7 @@
     function toggleSpeech() {
       const rec = initSpeechEngine();
       if (!rec) {
-        alert("目前環境無法啟用麥克風語音，請確認已使用 iPhone Safari 開啟並已允許麥克風權限。");
+        alert("請在 iPhone Safari 中開啟並允許麥克風權限以進行語音記帳。");
         return;
       }
       if (isSpeechRecording) {
@@ -738,7 +882,7 @@
       }
     }
 
-    // MARK: - 5. 介面渲染
+    // MARK: - 5. 介面渲染與滑動刪除 (Swipe-to-delete)
     function formatDateDisplay() {
       const y = selectedDate.getFullYear();
       const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
@@ -775,6 +919,12 @@
       document.querySelectorAll('.filter-chip').forEach(btn => {
         btn.classList.toggle('active', btn.innerText === (cat || '全部'));
       });
+      render();
+    }
+
+    function deleteRecordById(id) {
+      records = records.filter(r => r.id !== id);
+      saveData();
       render();
     }
 
@@ -816,7 +966,7 @@
         list.innerHTML = `
           <div style="text-align: center; margin-top: 50px; font-weight: 800; color: #000;">
             <div style="font-size: 36px; margin-bottom: 8px;">📭</div>
-            暫無此時段的記帳記錄
+            暫無此時段記錄 (可按左下角鉛筆手動添加)
           </div>`;
         return;
       }
@@ -826,6 +976,16 @@
         const timeStr = `${itemDate.getHours().toString().padStart(2, '0')}:${itemDate.getMinutes().toString().padStart(2, '0')}`;
         const icon = CATEGORY_ICONS[r.category] || "📦";
 
+        const wrapper = document.createElement('div');
+        wrapper.className = 'record-wrapper';
+
+        // 紅色刪除底層按鈕
+        const deleteBtn = document.createElement('div');
+        deleteBtn.className = 'delete-swipe-btn';
+        deleteBtn.innerText = '刪除 🗑️';
+        deleteBtn.onclick = () => deleteRecordById(r.id);
+
+        // 卡片主體
         const card = document.createElement('div');
         card.className = 'record-card';
         card.innerHTML = `
@@ -840,32 +1000,128 @@
             ${r.isIncome ? '+' : '-'}$${r.amount.toFixed(2)}
           </div>
         `;
-        list.appendChild(card);
+
+        // 綁定原生觸控滑動手勢 (Swipe Gesture)
+        let startX = 0;
+        let currentTranslate = 0;
+
+        card.addEventListener('touchstart', (e) => {
+          startX = e.touches[0].clientX;
+          card.style.transition = 'none';
+        }, { passive: true });
+
+        card.addEventListener('touchmove', (e) => {
+          const moveX = e.touches[0].clientX;
+          const diffX = moveX - startX;
+          if (diffX < 0) {
+            // 向左滑
+            currentTranslate = Math.max(diffX, -85);
+            card.style.transform = `translateX(${currentTranslate}px)`;
+          } else if (currentTranslate < 0 && diffX > 0) {
+            // 向右滑復位
+            let backX = Math.min(-85 + diffX, 0);
+            card.style.transform = `translateX(${backX}px)`;
+          }
+        }, { passive: true });
+
+        card.addEventListener('touchend', () => {
+          card.style.transition = 'transform 0.2s ease-out';
+          if (currentTranslate < -40) {
+            // 滑出刪除按鈕
+            card.style.transform = 'translateX(-85px)';
+            currentTranslate = -85;
+          } else {
+            // 彈回原位
+            card.style.transform = 'translateX(0px)';
+            currentTranslate = 0;
+          }
+        });
+
+        wrapper.appendChild(deleteBtn);
+        wrapper.appendChild(card);
+        list.appendChild(wrapper);
       });
     }
 
-    // MARK: - 6. 日曆彈窗操作
+    // MARK: - 6. 視覺化大月曆彈窗邏輯
     function openDateModal() {
-      document.getElementById('calendarPickerInput').value = selectedDate.toISOString().split('T')[0];
+      calBrowsingDate = new Date(selectedDate.getTime());
+      renderCalendarView();
       document.getElementById('calendarModal').style.display = 'flex';
     }
     function closeDateModal() {
       document.getElementById('calendarModal').style.display = 'none';
     }
-    function confirmDateSelect() {
-      const val = document.getElementById('calendarPickerInput').value;
-      if (val) {
-        selectedDate = new Date(val);
-        currentDimension = 'day';
-        document.querySelectorAll('.dim-btn').forEach((btn, i) => {
-          btn.classList.toggle('active', i === 0);
-        });
-        render();
-      }
+    function shiftCalendarMonth(delta) {
+      calBrowsingDate.setMonth(calBrowsingDate.getMonth() + delta);
+      renderCalendarView();
+    }
+    function jumpToday() {
+      selectedDate = new Date();
+      currentDimension = 'day';
+      document.querySelectorAll('.dim-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === 0);
+      });
+      render();
       closeDateModal();
     }
 
-    // MARK: - 7. 手動記帳彈窗操作
+    function renderCalendarView() {
+      const year = calBrowsingDate.getFullYear();
+      const month = calBrowsingDate.getMonth();
+      document.getElementById('calMonthTitle').innerText = `${year}年 ${month + 1}月`;
+
+      const grid = document.getElementById('calGrid');
+      grid.innerHTML = '';
+
+      // 星期標題
+      const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+      weekdays.forEach(w => {
+        const div = document.createElement('div');
+        div.className = 'cal-weekday';
+        div.innerText = w;
+        grid.appendChild(div);
+      });
+
+      // 計算本月第一天星期幾與總天數
+      const firstDay = new Date(year, month, 1).getDay();
+      const totalDays = new Date(year, month + 1, 0).getDate();
+
+      // 前置空白格
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'cal-day-btn empty';
+        grid.appendChild(empty);
+      }
+
+      // 渲染每一天按鈕
+      for (let day = 1; day <= totalDays; day++) {
+        const btn = document.createElement('button');
+        btn.className = 'cal-day-btn';
+        btn.innerText = day;
+
+        const isCurrentSelected = (
+          selectedDate.getFullYear() === year &&
+          selectedDate.getMonth() === month &&
+          selectedDate.getDate() === day
+        );
+        if (isCurrentSelected) btn.classList.add('selected');
+
+        btn.onclick = () => {
+          selectedDate = new Date(year, month, day);
+          currentDimension = 'day';
+          document.querySelectorAll('.dim-btn').forEach((b, i) => {
+            b.classList.toggle('active', i === 0);
+          });
+          render();
+          closeDateModal();
+        };
+
+        grid.appendChild(btn);
+      }
+    }
+
+    // MARK: - 7. 手動記帳彈窗
     function openManualModal() {
       document.getElementById('manualModal').style.display = 'flex';
       document.getElementById('manualInputText').value = '';
@@ -905,7 +1161,7 @@
       closeManualModal();
     }
 
-    // MARK: - 8. Excel 匯出 (CSV with UTF-8 BOM)
+    // MARK: - 8. Excel 匯出
     function exportToExcel() {
       let csv = "\uFEFF";
       csv += "記錄日期,記錄時間,收支類型,消費分類,項目名稱,金額(HKD)\n";
@@ -940,10 +1196,12 @@
       document.getElementById('dateDisplay').style.color = t.subColor;
       document.querySelectorAll('.filter-chip.active').forEach(chip => {
         chip.style.backgroundColor = t.primary;
+        chip.style.boxShadow = `0 3px 0 ${t.btnShadow}`;
       });
       document.getElementById('micBtn').style.backgroundColor = t.primary;
+      document.getElementById('micBtn').style.boxShadow = `0 6px 0 ${t.btnShadow}`;
       document.getElementById('btnSaveRecord').style.backgroundColor = t.primary;
-      document.getElementById('btnConfirmDate').style.backgroundColor = t.primary;
+      document.getElementById('btnSaveRecord').style.boxShadow = `0 3px 0 ${t.btnShadow}`;
     }
 
     const canvas = document.getElementById('bgCanvas');
@@ -1010,7 +1268,6 @@
       requestAnimationFrame(animate);
     }
 
-    // 啟動入口
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
     applyTheme();
