@@ -355,21 +355,26 @@
       100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250, 82, 82, 0); }
     }
 
+    /* 語音懸浮提示框（改為可容納長文字） */
     .speech-tip {
       position: absolute;
       bottom: 98px;
-      left: 50%;
-      transform: translateX(-50%);
+      left: 16px;
+      right: 16px;
+      margin: 0 auto;
+      max-width: 90%;
       background: rgba(255, 255, 255, 0.98);
-      padding: 8px 18px;
-      border-radius: 12px;
-      font-size: 13px;
+      padding: 10px 16px;
+      border-radius: 14px;
+      font-size: 14px;
       font-weight: 800;
       color: #000000;
-      box-shadow: 0 3px 12px rgba(0,0,0,0.2);
-      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      text-align: center;
       display: none;
       z-index: 25;
+      line-height: 1.4;
+      border: 1px solid rgba(0,0,0,0.08);
     }
 
     .modal-overlay {
@@ -567,7 +572,8 @@
 
     <div class="record-list" id="recordList"></div>
 
-    <div class="speech-tip" id="speechTip">正在聆聽中... (請再按一下麥克風停止)</div>
+    <!-- 語音對話保留視窗 -->
+    <div class="speech-tip" id="speechTip">正在聆聽... (說完後請點擊麥克風按鈕完成)</div>
 
     <div class="bottom-bar">
       <button class="pen-btn" onclick="openManualModal()">✏️</button>
@@ -575,7 +581,6 @@
     </div>
   </div>
 
-  <!-- 手動記帳彈窗（含 DeepSeek Key 設置） -->
   <div class="modal-overlay" id="manualModal">
     <div class="modal-card">
       <div class="modal-header">
@@ -618,7 +623,6 @@
     </div>
   </div>
 
-  <!-- 大日曆彈窗 -->
   <div class="modal-overlay" id="calendarModal">
     <div class="modal-card">
       <div class="modal-header">
@@ -639,7 +643,6 @@
   </div>
 
   <script>
-    // MARK: - 1. 主題配色
     const THEMES = [
       {
         name: "流沙星辰",
@@ -689,7 +692,6 @@
 
     let currentThemeIdx = 0;
 
-    // MARK: - 2. 狀態管理
     let records = [];
     try {
       const stored = localStorage.getItem('my_ledger_records');
@@ -721,7 +723,6 @@
       localStorage.setItem('deepseek_api_key', deepseekKey);
     }
 
-    // MARK: - 3. 智慧主題與贅字清理引擎
     const CATEGORY_MAP = {
       "餐飲美食": ["飯", "麵", "食", "咖啡", "外賣", "早餐", "午餐", "晚餐", "茶餐廳", "凍飲", "壽司", "薩莉亞", "starbucks", "m記", "麥當勞", "吉野家", "譚仔", "南記", "酒樓", "cafe", "food", "drink", "晏", "宴"],
       "交通出行": ["搭車", "搭", "行路", "行", "走路", "步行", "車", "車費", "地鐵", "巴士", "的士", "打車", "uber", "八達通", "mtr", "bus", "taxi", "油費", "泊車", "小巴", "渡輪", "電車", "輕鐵", "過海", "walk", "train"],
@@ -745,10 +746,8 @@
 
     function cleanTitleTopic(text) {
       let s = text;
-      // 移除金額及幣值單位
       s = s.replace(/(\$?\s*[0-9]+(\.[0-9]{1,2})?\s*(蚊|元|塊|dollars|hkd|usd)?\$?)/gi, "");
 
-      // 剝除口語贅字
       const stopWords = [
         "我今日", "今日", "琴日", "尋日", "去咗", "去左", "係", "喺", "到", "食咗", "食左", "買咗", "買左",
         "用咗", "用左", "使咗", "使左", "花咗", "花左", "花了", "花費", "用", "食", "買", "搭",
@@ -759,7 +758,6 @@
       }
       s = s.trim();
 
-      // 特定知名連鎖餐廳補齊全名（提升閱讀品質）
       if (s === "薩莉亞") s = "薩莉亞意式餐廳";
       if (s === "麥當勞" || s.toLowerCase() === "m記") s = "麥當勞";
       if (s === "星巴克") s = "星巴克咖啡";
@@ -822,7 +820,6 @@
       return parsedList;
     }
 
-    // 可選 DeepSeek 大模型連線分析（有填 Key 才使用）
     async function parseWithDeepSeek(rawText) {
       if (!deepseekKey) return parseMultiItemsLocal(rawText);
 
@@ -859,16 +856,25 @@
           date: new Date().toISOString()
         }));
       } catch (err) {
-        // 連網失敗或超時，自動回退本地規則
         return parseMultiItemsLocal(rawText);
       }
     }
 
-    // MARK: - 4. 手動按鈕控制語音錄音（停頓不自動中斷）
+    // MARK: - 4. 語音常駐保留機制（停頓不消失，僅手動按鈕結算）
     let speechRecognitionInstance = null;
     let isSpeechRecording = false;
-    let accumulatedTranscript = '';
-    let manualStopRequested = false;
+    let confirmedTranscript = ''; // 已經確定說完的內容
+    let interimTranscript = '';   // 當前正在說的內容
+
+    function updateSpeechUI() {
+      const fullText = (confirmedTranscript + " " + interimTranscript).trim();
+      const tip = document.getElementById('speechTip');
+      if (fullText) {
+        tip.innerHTML = `<span style="color:#d4af37;">識別內容：</span>${fullText}<br><span style="font-size:11px;color:#868e96;">(請點擊下方麥克風完成記帳)</span>`;
+      } else {
+        tip.innerText = '正在聆聽... (說完後請點擊麥克風按鈕完成)';
+      }
+    }
 
     function initSpeechEngine() {
       if (speechRecognitionInstance) return speechRecognitionInstance;
@@ -876,62 +882,40 @@
         const SpeechClass = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechClass) return null;
         const rec = new SpeechClass();
-        rec.continuous = true; // 開啟持續收音，停頓時不中斷
+        rec.continuous = true;
         rec.interimResults = true;
         rec.lang = 'zh-HK';
 
         rec.onstart = () => {
-          isSpeechRecording = true;
-          manualStopRequested = false;
-          accumulatedTranscript = '';
           document.getElementById('micBtn').classList.add('recording');
-          const tip = document.getElementById('speechTip');
-          tip.style.display = 'block';
-          tip.innerText = '正在聆聽... (說完請再點擊麥克風停止)';
+          document.getElementById('speechTip').style.display = 'block';
+          updateSpeechUI();
         };
 
         rec.onresult = (event) => {
-          let currentStr = '';
+          interimTranscript = '';
           for (let i = event.resultIndex; i < event.results.length; ++i) {
-            currentStr += event.results[i][0].transcript;
-          }
-          if (currentStr) {
-            accumulatedTranscript = currentStr;
-            document.getElementById('speechTip').innerText = currentStr;
-          }
-        };
-
-        rec.onend = async () => {
-          // 若不是使用者主動點擊停止，自動重新啟動保持連線（防系統靜音超時中斷）
-          if (!manualStopRequested && isSpeechRecording) {
-            try { rec.start(); return; } catch(e) {}
-          }
-
-          isSpeechRecording = false;
-          document.getElementById('micBtn').classList.remove('recording');
-          const tip = document.getElementById('speechTip');
-          tip.style.display = 'none';
-
-          if (accumulatedTranscript && !accumulatedTranscript.startsWith('正在聆聽')) {
-            tip.style.display = 'block';
-            tip.innerText = '正在智慧分析主題...';
-            const newItems = await parseWithDeepSeek(accumulatedTranscript);
-            tip.style.display = 'none';
-
-            if (newItems.length > 0) {
-              records.unshift(...newItems);
-              saveData();
-              render();
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              confirmedTranscript += " " + transcript;
+            } else {
+              interimTranscript += transcript;
             }
           }
+          updateSpeechUI();
         };
 
-        rec.onerror = (e) => {
-          if (manualStopRequested) {
-            isSpeechRecording = false;
-            document.getElementById('micBtn').classList.remove('recording');
-            document.getElementById('speechTip').style.display = 'none';
+        rec.onend = () => {
+          // 如果使用者尚未手動按下停止，即使 Safari 靜音超時中斷，亦自動重啟維持錄音，確保內容完全不丟失
+          if (isSpeechRecording) {
+            try {
+              rec.start();
+            } catch(e) {}
           }
+        };
+
+        rec.onerror = () => {
+          // 錯誤發生時依舊保留畫面上已講內容，不重置
         };
 
         speechRecognitionInstance = rec;
@@ -941,22 +925,52 @@
       }
     }
 
-    function toggleSpeech() {
+    async function toggleSpeech() {
       const rec = initSpeechEngine();
       if (!rec) {
-        alert("請使用 iPhone Safari 開啟並允許麥克風權限以進行語音記帳。");
+        alert("請在 iPhone Safari 中開啟並允許麥克風權限以進行語音記帳。");
         return;
       }
+
       if (isSpeechRecording) {
-        manualStopRequested = true;
+        // === 手動點擊停止：正式結算記帳 ===
+        isSpeechRecording = false;
         rec.stop();
+
+        document.getElementById('micBtn').classList.remove('recording');
+        const finalContent = (confirmedTranscript + " " + interimTranscript).trim();
+
+        if (finalContent) {
+          const tip = document.getElementById('speechTip');
+          tip.innerText = '正在智慧分析主題...';
+
+          const newItems = await parseWithDeepSeek(finalContent);
+          tip.style.display = 'none';
+
+          if (newItems.length > 0) {
+            records.unshift(...newItems);
+            saveData();
+            render();
+          }
+        } else {
+          document.getElementById('speechTip').style.display = 'none';
+        }
+
+        // 清空緩存，準備下一次記帳
+        confirmedTranscript = '';
+        interimTranscript = '';
       } else {
-        manualStopRequested = false;
-        rec.start();
+        // === 手動點擊開始：開啟錄音 ===
+        isSpeechRecording = true;
+        confirmedTranscript = '';
+        interimTranscript = '';
+        try {
+          rec.start();
+        } catch(e) {}
       }
     }
 
-    // MARK: - 5. 介面渲染與完美回彈滑動刪除
+    // MARK: - 5. 介面渲染與向右滑動復位
     function formatDateDisplay() {
       const y = selectedDate.getFullYear();
       const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
@@ -1073,7 +1087,6 @@
           </div>
         `;
 
-        // 升級雙向手勢控制（支援向右拉回復位）
         let startX = 0;
         let currentX = 0;
         let isOpened = false;
@@ -1088,13 +1101,11 @@
           const deltaX = moveX - startX;
 
           if (isOpened) {
-            // 已展開狀態下，支援向右拉回 (0 到 -90px 之間跟隨手指)
             if (deltaX > 0) {
               currentX = Math.min(-90 + deltaX, 0);
               card.style.transform = `translateX(${currentX}px)`;
             }
           } else {
-            // 未展開狀態下，支援向左拉出
             if (deltaX < 0) {
               currentX = Math.max(deltaX, -100);
               card.style.transform = `translateX(${currentX}px)`;
@@ -1105,7 +1116,6 @@
         card.addEventListener('touchend', () => {
           card.style.transition = 'transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1)';
           if (isOpened) {
-            // 已展開狀態：向右滑動超過 25px 立即自動復位
             if (currentX > -65) {
               card.style.transform = 'translateX(0px)';
               isOpened = false;
@@ -1115,7 +1125,6 @@
               currentX = -90;
             }
           } else {
-            // 未展開狀態：向左滑動超過 35px 則卡在刪除位置
             if (currentX < -35) {
               card.style.transform = 'translateX(-90px)';
               isOpened = true;
@@ -1127,7 +1136,6 @@
           }
         });
 
-        // 點擊卡片本體自動復位
         card.addEventListener('click', () => {
           if (isOpened) {
             card.style.transition = 'transform 0.2s ease-out';
@@ -1143,7 +1151,6 @@
       });
     }
 
-    // MARK: - 6. 大日曆操作
     function openDateModal() {
       calBrowsingDate = new Date(selectedDate.getTime());
       renderCalendarView();
@@ -1217,7 +1224,6 @@
       }
     }
 
-    // MARK: - 7. 手動新增彈窗
     function openManualModal() {
       document.getElementById('manualModal').style.display = 'flex';
       document.getElementById('manualInputText').value = '';
@@ -1258,7 +1264,6 @@
       closeManualModal();
     }
 
-    // MARK: - 8. Excel (CSV) 導出
     function exportToExcel() {
       let csv = "\uFEFF";
       csv += "記錄日期,記錄時間,收支類型,消費分類,項目名稱,金額(HKD)\n";
@@ -1281,7 +1286,6 @@
       document.body.removeChild(link);
     }
 
-    // MARK: - 9. 主題切換與背景 Canvas 粒子
     function switchTheme() {
       currentThemeIdx = (currentThemeIdx + 1) % THEMES.length;
       applyTheme();
